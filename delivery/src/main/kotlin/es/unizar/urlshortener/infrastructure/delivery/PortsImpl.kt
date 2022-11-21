@@ -28,7 +28,7 @@ class HashServiceImpl : HashService {
  * Implementation of the port [QRService].
  */
 class QRServiceImpl : QRService {
-    override fun QRencodeURL(url: String): String {
-        return "Testing"
+    override fun qrEncodeURL(url: String) {
+        TODO("Not yet implemented")
     }
 }

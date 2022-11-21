@@ -1,5 +1,6 @@
 package es.unizar.urlshortener
 
+import GenerateQRUseCaseImpl
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
 import es.unizar.urlshortener.core.usecases.LogClickUseCaseImpl
 import es.unizar.urlshortener.core.usecases.RedirectUseCaseImpl
@@ -45,5 +46,8 @@ class ApplicationConfiguration(
 
     @Bean
     fun createShortUrlUseCase() =
-        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService(), QRService())
+        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService())
+
+    @Bean
+    fun generateQRUseCase() = GenerateQRUseCaseImpl(shortUrlRepositoryService())
 }
