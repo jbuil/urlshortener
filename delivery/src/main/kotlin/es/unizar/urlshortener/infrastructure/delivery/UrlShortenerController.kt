@@ -43,6 +43,7 @@ interface UrlShortenerController {
  */
 data class ShortUrlDataIn(
     val url: String,
+    val wantQR: Boolean?,
     val sponsor: String? = null
 )
 
@@ -51,6 +52,7 @@ data class ShortUrlDataIn(
  */
 data class ShortUrlDataOut(
     val url: URI? = null,
+    val qr: String?,
     val properties: Map<String, Any> = emptyMap()
 )
 
@@ -80,6 +82,7 @@ class UrlShortenerControllerImpl(
     override fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> =
         createShortUrlUseCase.create(
             url = data.url,
+            wantQR = data.wantQR,
             data = ShortUrlProperties(
                 ip = request.remoteAddr,
                 sponsor = data.sponsor
@@ -90,6 +93,7 @@ class UrlShortenerControllerImpl(
             h.location = url
             val response = ShortUrlDataOut(
                 url = url,
+                qr = it.qr,
                 properties = mapOf(
                     "safe" to it.properties.safe
                 )

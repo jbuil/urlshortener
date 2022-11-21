@@ -32,3 +32,12 @@ interface ValidatorService {
 interface HashService {
     fun hasUrl(url: String): String
 }
+
+/**
+ * [QRService] is the port to the service that creates a QR code from a shortened URI.
+ *
+ * **Note**: It is a design decision to create this port. It could be part of the core .
+ */
+interface QRService {
+    fun QRencodeURL(url: String): String?
+}
