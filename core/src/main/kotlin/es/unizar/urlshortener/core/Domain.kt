@@ -3,6 +3,14 @@ package es.unizar.urlshortener.core
 import java.time.OffsetDateTime
 
 /**
+ *  A [InfoHTTPHeader] is the bag of properties that a [infoHTTPHeaderUseCase] may have.
+ */
+data class InfoHTTPHeader(
+    val date: String,
+    val browser: String?,
+    val platform: String?)
+
+/**
  * A [Click] captures a request of redirection of a [ShortUrl] identified by its [hash].
  */
 data class Click(
@@ -51,3 +59,5 @@ data class ClickProperties(
     val platform: String? = null,
     val country: String? = null
 )
+
+
