@@ -1,10 +1,16 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
-import es.unizar.urlshortener.core.usecases.InfoHTTPHeaderUserCase
-import org.springframework.stereotype.Controller
+import es.unizar.urlshortener.core.Click
+import es.unizar.urlshortener.core.InfoHTTPHeader
+import es.unizar.urlshortener.core.usecases.InfoHTTPHeaderUseCase
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import javax.servlet.http.HttpServletRequest
 
+data class InfoHTTPHeaderOut(
+    val info: List<Click>?
+)
 /**
  * The specification of the controller.
  */
@@ -15,7 +21,7 @@ interface InfoHTPPHeaderController {
      *
      * **Note**:
      */
-    fun infoner(id: String, request: HttpServletRequest): String
+    fun getInfo(id: String,request: HttpServletRequest): ResponseEntity<InfoHTTPHeaderOut>
 
 }
 
@@ -24,19 +30,25 @@ interface InfoHTPPHeaderController {
  *
  * **Note**: Spring Boot is able to discover this [RestController] without further configuration.
  */
-@Controller
+@RestController
 class InfoHTTPHeaderControllerImpl (
-    val infoHTTPHeaderUserCase: InfoHTTPHeaderUserCase
+    val infoHTTPHeaderUseCase: InfoHTTPHeaderUseCase
 ) : InfoHTPPHeaderController {
 
-    @RequestMapping("/api/link/{id}")
-    override fun infoner(@PathVariable id: String, request: HttpServletRequest): String {
-        val info = InfoHTTPHeaderUserCase.getInfo(id)
-        if (info != null) {
-            for (i in info) {
-                println(i.date + ", " + i.browser + ", " + i.platform)
-            }
+
+
+
+    @GetMapping("/api/link/{id}")
+    override fun getInfo(@PathVariable id: String,request: HttpServletRequest): ResponseEntity<InfoHTTPHeaderOut> =
+        infoHTTPHeaderUseCase.getInfo(id).let{
+            val response = InfoHTTPHeaderOut(
+                info = it
+            )
+            ResponseEntity<InfoHTTPHeaderOut>(response,HttpStatus.OK)
         }
-        return "info"
-    }
+
+
+
+
 }
+

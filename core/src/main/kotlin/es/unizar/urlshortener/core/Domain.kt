@@ -6,9 +6,12 @@ import java.time.OffsetDateTime
  *  A [InfoHTTPHeader] is the bag of properties that a [infoHTTPHeaderUseCase] may have.
  */
 data class InfoHTTPHeader(
-    val date: String,
-    val browser: String?,
-    val platform: String?)
+    val hash: String,
+    val browser: String? = ClickProperties().browser,
+    val platform: String? = ClickProperties().platform,
+    val created: OffsetDateTime = OffsetDateTime.now()
+)
+
 
 /**
  * A [Click] captures a request of redirection of a [ShortUrl] identified by its [hash].

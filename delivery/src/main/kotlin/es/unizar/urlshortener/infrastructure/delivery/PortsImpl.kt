@@ -40,3 +40,5 @@ class QRServiceImpl : QRService {
             ByteArrayResource(imageBytes, IMAGE_PNG_VALUE)
         }
 }
+
+

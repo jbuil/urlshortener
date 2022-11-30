@@ -7,8 +7,9 @@ import org.springframework.core.io.*
  */
 interface ClickRepositoryService {
     fun save(cl: Click): Click
-    fun existHash(id: String): Boolean
-    fun findByHash(id: String): List<Click>
+    //fun existHash(id: String): Boolean
+   // fun findByHash(id: String): List<Click>
+    fun getInfo(id: String): List<Click>
 }
 
 /**
@@ -45,3 +46,5 @@ interface HashService {
 interface QRService {
     fun qrEncode(hash: String) : ByteArrayResource
 }
+
+
