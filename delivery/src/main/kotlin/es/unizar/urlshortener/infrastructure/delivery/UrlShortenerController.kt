@@ -7,6 +7,7 @@ import es.unizar.urlshortener.core.usecases.*
 import org.springframework.core.io.*
 import org.springframework.hateoas.server.mvc.*
 import org.springframework.http.*
+import org.springframework.http.MediaType.*
 import org.springframework.web.bind.annotation.*
 import java.net.*
 import javax.servlet.http.*
@@ -75,7 +76,7 @@ class UrlShortenerControllerImpl(
             ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
         }
 
-    @PostMapping("/api/link", consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE])
+    @PostMapping("/api/link", consumes = [APPLICATION_FORM_URLENCODED_VALUE])
     override fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> =
         createShortUrlUseCase.create(
             url = data.url,
@@ -102,7 +103,7 @@ class UrlShortenerControllerImpl(
     override fun generateQR(@PathVariable hash: String, request: HttpServletRequest) : ResponseEntity<ByteArrayResource> =
         generateQRUseCase.generateQR(hash).let {
             val h = HttpHeaders()
-            h.set(CONTENT_TYPE, "image/png")
+            h.set(CONTENT_TYPE, IMAGE_PNG.toString())
             ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)
         }
 
