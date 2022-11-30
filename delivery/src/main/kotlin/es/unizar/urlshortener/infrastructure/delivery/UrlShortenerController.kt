@@ -7,12 +7,10 @@ import es.unizar.urlshortener.core.usecases.*
 import org.springframework.core.io.*
 import org.springframework.hateoas.server.mvc.*
 import org.springframework.http.*
+import org.springframework.http.MediaType.*
 import org.springframework.web.bind.annotation.*
-import ru.chermenin.ua.UserAgent
 import java.net.*
-import java.util.*
 import javax.servlet.http.*
-
 
 /**
  * The specification of the controller.
@@ -72,15 +70,13 @@ class UrlShortenerControllerImpl(
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
         redirectUseCase.redirectTo(id).let {
-            val userAgent =  UserAgent.parse(request.getHeader("user-agent"))
-            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr,platform = userAgent.os.toString() ,browser = userAgent.browser.toString()))
+            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
             val h = HttpHeaders()
             h.location = URI.create(it.target)
             ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
         }
 
-
-    @PostMapping("/api/link", consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE])
+    @PostMapping("/api/link", consumes = [APPLICATION_FORM_URLENCODED_VALUE])
     override fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> =
         createShortUrlUseCase.create(
             url = data.url,
@@ -105,94 +101,15 @@ class UrlShortenerControllerImpl(
 
     @GetMapping("/{hash}/qr")
     override fun generateQR(@PathVariable hash: String, request: HttpServletRequest) : ResponseEntity<ByteArrayResource> =
-
         generateQRUseCase.generateQR(hash).let {
             val h = HttpHeaders()
-            h.set(CONTENT_TYPE, "image/png")
-            print(hash)
+            h.set(CONTENT_TYPE, IMAGE_PNG.toString())
             ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)
         }
 
     fun assignQR(wantQR: Boolean?, path: String): URI? = when (wantQR) {
         true -> URI.create(baseURI + path + qrEndpoint)
         else -> null
-    }
-    fun getClientOS(request: HttpServletRequest): String? {
-        val browserDetails: String = request.getHeader("User-Agent")
-
-
-        val lowerCaseBrowser = browserDetails.lowercase(Locale.getDefault())
-        print(lowerCaseBrowser)
-        return if (lowerCaseBrowser.contains("windows")) {
-            "Windows"
-        } else if (lowerCaseBrowser.contains("mac")) {
-            "Mac"
-        } else if (lowerCaseBrowser.contains("x11")) {
-            "Unix"
-        } else if (lowerCaseBrowser.contains("android")) {
-            "Android"
-        } else if (lowerCaseBrowser.contains("iphone")) {
-            "IPhone"
-        } else if (lowerCaseBrowser.contains("curl")) {
-            "curl"
-        } else {
-            "UnKnown, More-Info: $browserDetails"
-        }
-    }
-    fun getClientBrowser(request: HttpServletRequest): String? {
-        val browserDetails = request.getHeader("User-Agent")
-        val user = browserDetails.lowercase(Locale.getDefault())
-        var browser = ""
-
-        //===============Browser===========================
-        if (user.contains("msie")) {
-            val substring =
-                browserDetails.substring(browserDetails.indexOf("MSIE")).split(";".toRegex()).toTypedArray()[0]
-            browser = substring.split(" ".toRegex()).toTypedArray()[0].replace(
-                "MSIE",
-                "IE"
-            ) + "-" + substring.split(" ".toRegex()).toTypedArray()[1]
-        } else if (user.contains("safari") && user.contains("version")) {
-            browser =
-                browserDetails.substring(browserDetails.indexOf("Safari")).split(" ".toRegex()).toTypedArray()[0].split(
-                    "/".toRegex()
-                ).toTypedArray()[0] + "-" + browserDetails.substring(
-                    browserDetails.indexOf("Version")
-                ).split(" ".toRegex()).toTypedArray()[0].split("/".toRegex()).toTypedArray()[1]
-        } else if (user.contains("opr") || user.contains("opera")) {
-            if (user.contains("opera")) browser =
-                browserDetails.substring(browserDetails.indexOf("Opera")).split(" ".toRegex()).toTypedArray()[0].split(
-                    "/".toRegex()
-                ).toTypedArray()[0] + "-" + browserDetails.substring(
-                    browserDetails.indexOf("Version")
-                ).split(" ".toRegex()).toTypedArray()[0].split("/".toRegex())
-                    .toTypedArray()[1] else if (user.contains("opr")) browser =
-                browserDetails.substring(browserDetails.indexOf("OPR")).split(" ".toRegex()).toTypedArray()[0].replace(
-                    "/",
-                    "-"
-                ).replace(
-                    "OPR", "Opera"
-                )
-        } else if (user.contains("chrome")) {
-            browser = browserDetails.substring(browserDetails.indexOf("Chrome")).split(" ".toRegex())
-                .toTypedArray()[0].replace("/", "-")
-        } else if (user.indexOf("mozilla/7.0") > -1 || user.indexOf("netscape6") != -1 || user.indexOf(
-                "mozilla/4.7"
-            ) != -1 || user.indexOf("mozilla/4.78") != -1 || user.indexOf(
-                "mozilla/4.08"
-            ) != -1 || user.indexOf("mozilla/3") != -1
-        ) {
-            //browser=(userAgent.substring(userAgent.indexOf("MSIE")).split(" ")[0]).replace("/", "-");
-            browser = "Netscape-?"
-        } else if (user.contains("firefox")) {
-            browser = browserDetails.substring(browserDetails.indexOf("Firefox")).split(" ".toRegex())
-                .toTypedArray()[0].replace("/", "-")
-        } else if (user.contains("rv")) {
-            browser = "IE"
-        } else {
-            browser = "UnKnown, More-Info: $browserDetails"
-        }
-        return browser
     }
 
     companion object {

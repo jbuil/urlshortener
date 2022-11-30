@@ -1,8 +1,8 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
+import GenerateQRUseCase
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
-import es.unizar.urlshortener.core.usecases.InfoHTTPHeaderUseCase
 import es.unizar.urlshortener.core.usecases.LogClickUseCase
 import es.unizar.urlshortener.core.usecases.RedirectUseCase
 import org.junit.jupiter.api.Test
@@ -12,6 +12,7 @@ import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.core.io.*
 import org.springframework.http.MediaType
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.web.servlet.MockMvc
@@ -39,8 +40,9 @@ class UrlShortenerControllerTest {
 
     @MockBean
     private lateinit var createShortUrlUseCase: CreateShortUrlUseCase
+
     @MockBean
-    private lateinit var infoHTTPHeaderUseCase: InfoHTTPHeaderUseCase
+    private lateinit var generateQRUseCase: GenerateQRUseCase
 
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
@@ -103,7 +105,24 @@ class UrlShortenerControllerTest {
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.statusCode").value(400))
     }
-    @Test
-    fun
 
+    @Test
+    fun `generateQR returns a qr code when the key exists`() {
+        given(generateQRUseCase.generateQR("key")).willReturn(ByteArrayResource("test".toByteArray()))
+
+        mockMvc.perform(get("/{hash}/qr", "key"))
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.IMAGE_PNG))
+            .andExpect(content().bytes("test".toByteArray()))
+    }
+
+    @Test
+    fun `generateQR returns a not found when the key does not exist`() {
+        given(generateQRUseCase.generateQR("key")).willAnswer { throw QrUriNotFound("key") }
+
+        mockMvc.perform(get("/{hash}/qr", "key"))
+            .andDo(print())
+            .andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.statusCode").value(404))
+    }
 }
