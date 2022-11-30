@@ -1,6 +1,9 @@
 package es.unizar.urlshortener
 
+import com.fasterxml.jackson.databind.JsonNode
 import es.unizar.urlshortener.infrastructure.delivery.ShortUrlDataOut
+import es.unizar.urlshortener.infrastructure.delivery.InfoHTTPHeaderOut
+import net.minidev.json.JSONObject
 import org.apache.http.impl.client.HttpClientBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -78,6 +81,7 @@ class HttpRequestTest {
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
         assertThat(response.headers.location).isEqualTo(URI.create("http://localhost:$port/f684a3c4"))
+        print(response.body)
         assertThat(response.body?.url).isEqualTo(URI.create("http://localhost:$port/f684a3c4"))
 
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "shorturl")).isEqualTo(1)
@@ -114,5 +118,36 @@ class HttpRequestTest {
             "http://localhost:$port/api/link",
             HttpEntity(data, headers), ShortUrlDataOut::class.java
         )
+    }
+    private fun infoHTTPHeader(key: String):  ResponseEntity<InfoHTTPHeaderOut>{
+        val url = shortUrl("www.google.com")
+        val data: MultiValueMap<String, String> = LinkedMultiValueMap()
+        print("aqui\n\n\n" + url.body?.properties)
+        data["url"] = url.toString()
+        return restTemplate.postForEntity(
+            "http://localhost:$port/api/link",
+            HttpEntity(data, url.headers), InfoHTTPHeaderOut::class.java
+        )
+    }
+    @Test
+    fun `infoHTTPHeader correcto`(){
+        infoHTTPHeader("")
+        val respHeaders = shortUrl("https://www.youtube.com")
+       // assertThat(respHeaders.body.properties).isEqualTo(HttpStatus.CREATED)
+        val target = respHeaders.headers.location
+        require(target != null)
+        // GET /{id}
+        restTemplate.getForEntity(target, String::class.java)
+        val hash = target.toString().split("/")[3]
+        // GET /api/link
+        val response1 = restTemplate.getForEntity("http://localhost:$port/api/link/"+hash, JSONObject::class.java)
+        val info = response1.body?.get("info").toString()
+        val browser = info.split(",").get(3).split("=").get(1)
+        val platform = info.split(",").get(4).split("=").get(1)
+        assertThat(browser).isEqualTo("Apache-HttpClient 4.5.13")
+        assertThat(platform).isEqualTo("Other")
+        //assertThat(response.body?.url).isEqualTo(URI.create("http://localhost:$port/f684a3c4")) //Comp. que devuelve Navegador
+        //assertThat(response1.body?.contains("other")).isEqualTo(true) //Comp. que devuelve Plataforma
+
     }
 }
