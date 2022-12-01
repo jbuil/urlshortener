@@ -1,6 +1,7 @@
 package es.unizar.urlshortener
 
 import GenerateQRUseCaseImpl
+import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
 import es.unizar.urlshortener.core.usecases.LogClickUseCaseImpl
 import es.unizar.urlshortener.core.usecases.RedirectUseCaseImpl
@@ -9,6 +10,8 @@ import es.unizar.urlshortener.infrastructure.repositories.ClickEntityRepository
 import es.unizar.urlshortener.infrastructure.repositories.ClickRepositoryServiceImpl
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlEntityRepository
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlRepositoryServiceImpl
+import es.unizar.urlshortener.core.usecases.InfoHTTPHeaderCaseImpl
+
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -44,10 +47,17 @@ class ApplicationConfiguration(
     @Bean
     fun logClickUseCase() = LogClickUseCaseImpl(clickRepositoryService())
 
+
+
     @Bean
     fun createShortUrlUseCase() =
         CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService())
 
     @Bean
     fun generateQRUseCase() = GenerateQRUseCaseImpl(shortUrlRepositoryService(), QRService())
+
+
+    @Bean
+    fun infoHTTPHeaderUserCase() = InfoHTTPHeaderCaseImpl(clickRepositoryService())
+
 }

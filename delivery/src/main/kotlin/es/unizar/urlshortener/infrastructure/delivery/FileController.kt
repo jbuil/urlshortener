@@ -34,7 +34,7 @@ public class FileControllerImpl (
 
     @PostMapping("/upload_URLs_File")
     override fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String {
-        if (file == null || file.isEmpty() ) {
+        if (file.isEmpty) {
             attributes.addFlashAttribute("message", "Please, select a file")
             return "redirect:status"
         }
@@ -47,13 +47,13 @@ public class FileControllerImpl (
 
         /** tratamiento del archivo */
         try {
-            val reader = BufferedReader(FileReader(file.originalFilename))
+            val reader = BufferedReader(file.originalFilename?.let { FileReader(it) })
             val writer = BufferedWriter(FileWriter("SHORTED.txt"))
             var line: String?
             line = reader.readLine()
 
             while (line != null) {
-                val content = String
+                //val content = String
                 /** TODO: convert line into a shortURL */
                 writer.write(line)
                 writer.newLine()

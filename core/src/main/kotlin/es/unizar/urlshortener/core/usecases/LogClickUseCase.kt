@@ -3,6 +3,10 @@ package es.unizar.urlshortener.core.usecases
 import es.unizar.urlshortener.core.Click
 import es.unizar.urlshortener.core.ClickProperties
 import es.unizar.urlshortener.core.ClickRepositoryService
+import java.util.*
+
+
+
 
 /**
  * Log that somebody has requested the redirection identified by a key.
@@ -23,7 +27,9 @@ class LogClickUseCaseImpl(
         val cl = Click(
             hash = key,
             properties = ClickProperties(
-                ip = data.ip
+                ip = data.ip,
+                browser = data.browser,
+                platform = data.platform
             )
         )
         clickRepository.save(cl)
