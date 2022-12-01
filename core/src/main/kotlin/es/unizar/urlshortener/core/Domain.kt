@@ -51,3 +51,10 @@ data class ClickProperties(
     val platform: String? = null,
     val country: String? = null
 )
+
+/**
+ * Data that a file reader will return.
+ */
+data class FileData(
+        val response: String
+)
