@@ -9,6 +9,7 @@ import org.springframework.hateoas.server.mvc.*
 import org.springframework.http.*
 import org.springframework.http.MediaType.*
 import org.springframework.web.bind.annotation.*
+import ru.chermenin.ua.UserAgent
 import java.net.*
 import javax.servlet.http.*
 
@@ -70,7 +71,8 @@ class UrlShortenerControllerImpl(
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
         redirectUseCase.redirectTo(id).let {
-            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
+            val userAgent =  UserAgent.parse(request.getHeader("user-agent"))
+            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr,platform = userAgent.os.toString() ,browser = userAgent.browser.toString()))
             val h = HttpHeaders()
             h.location = URI.create(it.target)
             ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
