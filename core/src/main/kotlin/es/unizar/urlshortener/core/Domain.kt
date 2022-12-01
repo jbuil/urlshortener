@@ -63,4 +63,3 @@ data class ClickProperties(
     val country: String? = null
 )
 
-
