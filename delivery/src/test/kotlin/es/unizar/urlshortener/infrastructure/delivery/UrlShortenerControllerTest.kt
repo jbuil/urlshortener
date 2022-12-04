@@ -52,7 +52,7 @@ class UrlShortenerControllerTest {
             .andExpect(status().isTemporaryRedirect)
             .andExpect(redirectedUrl("http://example.com/"))
 
-        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1"))
+       verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer="http://example.com/",browser = null, platform = null))
     }
 
     @Test

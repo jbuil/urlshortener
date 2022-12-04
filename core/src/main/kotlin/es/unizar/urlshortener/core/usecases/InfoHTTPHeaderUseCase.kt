@@ -13,6 +13,7 @@ import java.time.format.FormatStyle;
  */
 interface InfoHTTPHeaderUseCase {
     fun getInfo(key: String): List<Click>?
+    //fun getInfo(): Click
 }
 
 /**
@@ -24,4 +25,5 @@ class InfoHTTPHeaderCaseImpl(
     override fun getInfo(key: String): List<Click> {
         return clickRepository.getInfo(key)
     }
+
 }

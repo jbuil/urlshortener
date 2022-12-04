@@ -18,7 +18,7 @@ import java.io.FileWriter
 import java.io.IOException
 
 interface FileController {
-    fun index(): String
+   fun index(): String
     fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String
     fun status(): String
 }
