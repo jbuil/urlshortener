@@ -44,6 +44,7 @@ project(":core") {
     dependencies {
         "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
         "implementation"("org.springframework:spring-core:5.3.22")
+        "implementation" ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
     }
 }
 
@@ -72,6 +73,7 @@ project(":delivery") {
         "implementation"("commons-validator:commons-validator:$commonsValidatorVersion")
         "implementation"("com.google.guava:guava:$guavaVersion")
         "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
+        "implementation" ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
         "implementation"("ru.chermenin:kotlin-user-agents:0.2.2")
 
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
@@ -93,9 +95,7 @@ project(":app") {
         "implementation"("org.springframework.boot:spring-boot-starter")
         "implementation"( "org.webjars:bootstrap:$bootstrapVersion")
         "implementation"("org.webjars:jquery:$jqueryVersion")
-
         "runtimeOnly"("org.hsqldb:hsqldb")
-
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.springframework.boot:spring-boot-starter-web")
         "testImplementation"("org.springframework.boot:spring-boot-starter-jdbc")

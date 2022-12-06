@@ -60,6 +60,20 @@ data class ClickProperties(
     val referrer: String? = null,
     val browser: String? = null,
     val platform: String? = null,
-    val country: String? = null
-)
+    val country: String? = null){
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ClickProperties
+
+        if (ip != other.ip) return false
+        if (referrer != other.referrer) return false
+        if (browser != other.browser) return false
+        if (platform != other.platform) return false
+        if (country != other.country) return false
+
+        return true
+    }
+}
 

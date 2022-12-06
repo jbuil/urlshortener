@@ -1,5 +1,6 @@
 package es.unizar.urlshortener.core.usecases
-
+import kotlinx.coroutines.*
+import kotlinx.coroutines.runBlocking
 import es.unizar.urlshortener.core.*
 
 /**
@@ -20,20 +21,30 @@ class CreateShortUrlUseCaseImpl(
     private val validatorService: ValidatorService,
     private val hashService: HashService
 ) : CreateShortUrlUseCase {
-    override fun create(url: String, data: ShortUrlProperties): ShortUrl =
-        if (validatorService.isValid(url)) {
-            val id: String = hashService.hasUrl(url)
-            val su = ShortUrl(
-                hash = id,
-                redirection = Redirection(target = url),
-                properties = ShortUrlProperties(
-                    safe = data.safe,
-                    ip = data.ip,
-                    sponsor = data.sponsor
-                )
-            )
-            shortUrlRepository.save(su)
-        } else {
-            throw InvalidUrlException(url)
+    override fun create(url: String, data: ShortUrlProperties): ShortUrl {
+         return runBlocking {
+            val deferredShortUrl = async {
+                // Code to shorten the URL goes here
+                if (validatorService.isValid(url)) {
+                    val id: String = hashService.hasUrl(url)
+                    val su = ShortUrl(
+                        hash = id,
+                        redirection = Redirection(target = url),
+                        properties = ShortUrlProperties(
+                            safe = data.safe,
+                            ip = data.ip,
+                            sponsor = data.sponsor
+                        )
+                    )
+                    shortUrlRepository.save(su)
+                } else {
+                    throw InvalidUrlException(url)
+                }
+            }
+
+            // Return the shortened URL
+            return@runBlocking deferredShortUrl.await()
         }
+    }
+
 }

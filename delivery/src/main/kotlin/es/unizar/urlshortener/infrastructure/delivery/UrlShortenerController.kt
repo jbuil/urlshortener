@@ -77,8 +77,8 @@ class UrlShortenerControllerImpl(
                 userAgent = UserAgent.parse(request.getHeader("user-agent"))
             }
             logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr,
-                platform = userAgent?.os.toString() ,
-                browser = userAgent?.browser.toString(),referrer = redirection.target))
+                platform = userAgent?.os?.toString() ,
+                browser = userAgent?.browser?.toString(),referrer = redirection.target))
             val h = HttpHeaders()
             h.location = URI.create(it.target)
             ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
