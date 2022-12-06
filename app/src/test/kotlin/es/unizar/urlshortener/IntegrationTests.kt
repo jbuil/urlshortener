@@ -3,6 +3,8 @@ package es.unizar.urlshortener
 import com.fasterxml.jackson.databind.JsonNode
 import es.unizar.urlshortener.infrastructure.delivery.ShortUrlDataOut
 import es.unizar.urlshortener.infrastructure.delivery.InfoHTTPHeaderOut
+import net.minidev.json.JSONValue
+import net.minidev.json.JSONArray
 import net.minidev.json.JSONObject
 import org.apache.http.impl.client.HttpClientBuilder
 import org.assertj.core.api.Assertions.assertThat
@@ -10,6 +12,8 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment
 import org.springframework.boot.test.web.client.TestRestTemplate
@@ -18,15 +22,21 @@ import org.springframework.http.*
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.jdbc.JdbcTestUtils
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
+import org.springframework.test.web.servlet.MockMvc
 import java.net.URI
 
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
 class HttpRequestTest {
     @LocalServerPort
     private val port = 0
+
+    @Autowired
+    private lateinit var mockMvc: MockMvc
 
     @Autowired
     private lateinit var jdbcTemplate: JdbcTemplate
@@ -119,35 +129,80 @@ class HttpRequestTest {
             HttpEntity(data, headers), ShortUrlDataOut::class.java
         )
     }
-    private fun infoHTTPHeader(key: String):  ResponseEntity<InfoHTTPHeaderOut>{
-        val url = shortUrl("www.google.com")
-        val data: MultiValueMap<String, String> = LinkedMultiValueMap()
-        print("aqui\n\n\n" + url.body?.properties)
-        data["url"] = url.toString()
-        return restTemplate.postForEntity(
-            "http://localhost:$port/api/link",
-            HttpEntity(data, url.headers), InfoHTTPHeaderOut::class.java
-        )
-    }
+
     @Test
     fun `infoHTTPHeader correcto`(){
-        infoHTTPHeader("")
         val respHeaders = shortUrl("https://www.youtube.com")
-       // assertThat(respHeaders.body.properties).isEqualTo(HttpStatus.CREATED)
+
         val target = respHeaders.headers.location
         require(target != null)
-        // GET /{id}
+
         restTemplate.getForEntity(target, String::class.java)
         val hash = target.toString().split("/")[3]
-        // GET /api/link
-        val response1 = restTemplate.getForEntity("http://localhost:$port/api/link/"+hash, JSONObject::class.java)
-        val info = response1.body?.get("info").toString()
-        val browser = info.split(",").get(3).split("=").get(1)
-        val platform = info.split(",").get(4).split("=").get(1)
-        assertThat(browser).isEqualTo("Apache-HttpClient 4.5.13")
-        assertThat(platform).isEqualTo("Other")
-        //assertThat(response.body?.url).isEqualTo(URI.create("http://localhost:$port/f684a3c4")) //Comp. que devuelve Navegador
-        //assertThat(response1.body?.contains("other")).isEqualTo(true) //Comp. que devuelve Plataforma
 
+        val response1 = restTemplate.getForEntity("http://localhost:$port/api/link/"+hash, String::class.java)
+
+        // Get the response body from the ResponseEntity object
+        val responseBody = response1.body
+        // Parse the response body into a JSONArray
+        val jsonArray = JSONValue.parse(responseBody) as JSONArray
+
+        // Get the first element from the JSONArray (which should be a JSONObject)
+        val jsonObject = jsonArray.get(0) as JSONObject
+        // Get the "hash" value from the JSONObject
+        val id = jsonObject.get("hash")
+
+        // Get the "browser" value from the JSONObject
+        val browser = jsonObject.get("browser")
+
+        // Get the "platform" value from the JSONObject
+        val platform = jsonObject.get("platform")
+
+        assertThat(browser).isEqualTo("Apache-HttpClient 4.5.13")
+        assertThat(id).isEqualTo("e7f83ee8")
+        assertThat(platform).isEqualTo("Other")
     }
+
+    fun extractHash(url: String): String {
+        val regex = Regex("http://localhost:\\d+/(\\w+)")
+        val matchResult = regex.find(url)
+        return matchResult?.groupValues?.get(1) ?: ""
+    }
+
+    @Test
+    fun `clicks are recorded when a short URL is clicked`() {
+        // Creamos una URL acortada
+        val shortUrl = shortUrl("http://example.com/")
+
+        // Comprobamos que se ha creado correctamente
+        assertThat(shortUrl.statusCode).isEqualTo(HttpStatus.CREATED)
+        assertThat(shortUrl.headers.location).isEqualTo(URI.create("http://localhost:$port/f684a3c4"))
+        assertThat(shortUrl.body?.url).isEqualTo(URI.create("http://localhost:$port/f684a3c4"))
+
+        // Comprobamos que se ha guardado en la base de datos
+        assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "shorturl")).isEqualTo(1)
+        assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(0)
+
+        // Hacemos clic en la URL acortada
+        val click = mockMvc.perform(MockMvcRequestBuilders.get("/f684a3c4")
+                .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:80.0) Gecko/20100101 Firefox/80.0")
+                .header("X-Forwarded-For", "127.0.0.1")
+        ).andReturn()
+
+
+        // Comprobamos que se ha registrado el clic
+        assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(1)
+
+        // Recupera la fila de la tabla 'click'
+        val clickRow = jdbcTemplate.queryForMap("SELECT * FROM click LIMIT 1")
+        val url = shortUrl.body?.url
+        val hash = extractHash(url.toString())
+
+        // Verifica que la información del clic sea correcta
+        assertThat(clickRow["hash"]).isEqualTo(hash) // el ID del enlace acortado debe ser el mismo que se devolvió en la respuesta anterior
+        assertThat(clickRow["browser"]).isEqualTo("Firefox 80.0") // o el nombre del navegador que se esté utilizando
+        assertThat(clickRow["platform"]).isEqualTo("Linux") // o el nombre de la plataforma que se esté utilizando
+        assertThat(clickRow["created"]).isNotNull() // la fecha debe tener un valor
+    }
+
 }

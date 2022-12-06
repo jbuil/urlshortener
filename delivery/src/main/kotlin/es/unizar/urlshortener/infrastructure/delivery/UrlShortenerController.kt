@@ -71,8 +71,14 @@ class UrlShortenerControllerImpl(
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
         redirectUseCase.redirectTo(id).let {
-            val userAgent =  UserAgent.parse(request.getHeader("user-agent"))
-            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr,platform = userAgent.os.toString() ,browser = userAgent.browser.toString()))
+            var userAgent: UserAgent? = null
+            val redirection = redirectUseCase.redirectTo(id)
+            if(request.getHeader("user-agent") != null){
+                userAgent = UserAgent.parse(request.getHeader("user-agent"))
+            }
+            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr,
+                platform = userAgent?.os?.toString() ,
+                browser = userAgent?.browser?.toString(),referrer = redirection.target))
             val h = HttpHeaders()
             h.location = URI.create(it.target)
             ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
