@@ -19,7 +19,8 @@ interface CreateShortUrlUseCase {
 class CreateShortUrlUseCaseImpl(
     private val shortUrlRepository: ShortUrlRepositoryService,
     private val validatorService: ValidatorService,
-    private val hashService: HashService
+    private val hashService: HashService,
+    private val rabbitMQService: RabbitMQService
 ) : CreateShortUrlUseCase {
     override fun create(url: String, data: ShortUrlProperties): ShortUrl {
          return runBlocking {
@@ -36,7 +37,9 @@ class CreateShortUrlUseCaseImpl(
                             sponsor = data.sponsor
                         )
                     )
+                    rabbitMQService.write(url, id)
                     shortUrlRepository.save(su)
+                   // validatorService.sendMessage(url, id)
                 } else {
                     throw InvalidUrlException(url)
                 }
