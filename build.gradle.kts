@@ -75,7 +75,7 @@ project(":delivery") {
         "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
         "implementation" ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
         "implementation"("ru.chermenin:kotlin-user-agents:0.2.2")
-
+        "implementation"("com.rabbitmq:amqp-client:latest.release")
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
     }
