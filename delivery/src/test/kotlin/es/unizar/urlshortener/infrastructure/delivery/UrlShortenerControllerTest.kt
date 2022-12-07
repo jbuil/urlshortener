@@ -14,9 +14,9 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.BDDMockito.given
@@ -315,7 +315,8 @@ class UrlShortenerControllerTest {
             shortUrlRepository = mock(ShortUrlRepositoryService::class.java),
             validatorService = mock(ValidatorService::class.java),
             hashService = mock(HashService::class.java),
-            rabbitMQService = rabbitMQService
+            rabbitMQService = rabbitMQService,
+            safeBrowsingService = mock(GoogleSafeBrowsingService::class.java)
         )
 
         // Llamamos al caso de uso con una URL válida
@@ -324,6 +325,35 @@ class UrlShortenerControllerTest {
         // Verificamos que se llama al servicio de RabbitMQ con la URL y el ID correctos
         verify(rabbitMQService).write("http://google.com", "f684a3c4")
     }
+    @Test
+    fun testGoogleSafeBrowsingService() {
+        // URL de prueba que se considera segura
+        val testUrlSafe = "https://www.google.com"
+        val testUrlNotSafe = "https://www.zipl.in/construction/slider/up/"
+
+        // Inicializar el servicio de Google Safe Browsing
+        val googleSafeBrowsingService = GoogleSafeBrowsingServiceImpl()
+
+        // Llamar al método isSafe del servicio de Google Safe Browsing
+        val isSafe = googleSafeBrowsingService.isSafe(testUrlSafe)
+        val isNotSafe = googleSafeBrowsingService.isSafe(testUrlNotSafe)
+        // Verificar que el resultado sea el esperado
+        assertTrue(isSafe)
+        assertFalse(isNotSafe)
+    }
+    @Test
+    fun testCreateShortUrlWithUnsafeUrl() {
+        // URL de prueba que se considera insegura
+        val testUrl = "https://www.zipl.in/construction/slider/up/"
+
+        given(
+            createShortUrlUseCase.create(
+                url = testUrl,
+                data = ShortUrlProperties(ip = "127.0.0.1")
+            )
+        ).willAnswer { throw UrlNotSafe(testUrl) }
+    }
+
 
 
 

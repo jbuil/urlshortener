@@ -20,26 +20,32 @@ class CreateShortUrlUseCaseImpl(
     private val shortUrlRepository: ShortUrlRepositoryService,
     private val validatorService: ValidatorService,
     private val hashService: HashService,
-    private val rabbitMQService: RabbitMQService
+    private val rabbitMQService: RabbitMQService,
+    private val safeBrowsingService: GoogleSafeBrowsingService
 ) : CreateShortUrlUseCase {
     override fun create(url: String, data: ShortUrlProperties): ShortUrl {
          return runBlocking {
             val deferredShortUrl = async {
                 // Code to shorten the URL goes here
                 if (validatorService.isValid(url)) {
-                    val id: String = hashService.hasUrl(url)
-                    val su = ShortUrl(
-                        hash = id,
-                        redirection = Redirection(target = url),
-                        properties = ShortUrlProperties(
-                            safe = data.safe,
-                            ip = data.ip,
-                            sponsor = data.sponsor
+                    if( safeBrowsingService.isSafe(url)){
+                        val id: String = hashService.hasUrl(url)
+                        val su = ShortUrl(
+                            hash = id,
+                            redirection = Redirection(target = url),
+                            properties = ShortUrlProperties(
+                                safe = data.safe,
+                                ip = data.ip,
+                                sponsor = data.sponsor
+                            )
                         )
-                    )
-                    rabbitMQService.write(url, id)
-                    shortUrlRepository.save(su)
-                   // validatorService.sendMessage(url, id)
+                        rabbitMQService.write(url, id)
+                        shortUrlRepository.save(su)
+                    }
+                    else{
+                        throw UrlNotSafe(url)
+                    }
+
                 } else {
                     throw InvalidUrlException(url)
                 }
