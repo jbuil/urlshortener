@@ -10,6 +10,8 @@ import com.google.api.services.safebrowsing.model.ThreatEntry
 import com.google.api.services.safebrowsing.model.ThreatInfo
 import com.google.common.hash.*
 import com.rabbitmq.client.ConnectionFactory
+import com.rabbitmq.client.DeliverCallback
+import com.rabbitmq.client.Delivery
 import es.unizar.urlshortener.core.*
 import io.github.g0dkar.qrcode.*
 import net.minidev.json.JSONObject
@@ -55,38 +57,41 @@ class QRServiceImpl : QRService {
 }
 
 class RabbitMQServiceImpl(
-    host: String = "localhost",
-    port: Int = 5672,
-    username: String = "guest",
-    password: String = "guest",
+    private val shortUrlRepository: ShortUrlRepositoryService
 ) : RabbitMQService {
+    // Crea un objeto ConnectionFactory y establece los parámetros de conexión
+    private val factory = ConnectionFactory()
+
+    // Crea una conexión a RabbitMQ
+    private val connection = factory.newConnection()
+
+
+
     override fun read(): String {
         try {
-            // Crea un objeto ConnectionFactory y establece los parámetros de conexión
-            val factory = ConnectionFactory()
-            factory.host = "localhost"
-            factory.port = 5672
-            factory.username = "guest"
-            factory.password = "guest"
-
-            // Crea una conexión a RabbitMQ
-            val connection = factory.newConnection()
 
             // Crea un objeto Channel y selecciona un vhost y una cola
             val channel = connection.createChannel()
             val vhost = "/"
             val queue = "queue"
-            channel.queueDeclare(queue, false, false, false, null)
-
             // Lee un mensaje de la cola
             val result = channel.basicGet(queue, true)
+            println("Leyendo....")
             if (result != null) {
                 val message = String(result.body, Charsets.UTF_8)
                 println("Received message: $message")
+                val deliverCallback = DeliverCallback { consumerTag: String?, delivery: Delivery ->
+                    val message = String(delivery.body, StandardCharsets.UTF_8)
+                    println(" [x] Received '$message'")
+                    val (url,hash) = message.split("::")
+                    shortUrlRepository.updateSafe(hash,GoogleSafeBrowsingServiceImpl().isSafe(url))
+                }
+                channel.basicConsume(queue, true, deliverCallback) { consumerTag: String? -> }
                 return message
             } else {
                 return ""
             }
+
         } catch (e: Exception) {
             // Maneja cualquier error que ocurra durante la lectura de un mensaje desde el broker
             return "Error durante la lectura de un mensaje desde el broker"
@@ -95,24 +100,15 @@ class RabbitMQServiceImpl(
 
     override fun write(url: String, id: String) {
         try {
-            // Crea un objeto ConnectionFactory y establece los parámetros de conexión
-            val factory = ConnectionFactory()
-            factory.host = "localhost"
-            factory.port = 5672
-            factory.username = "guest"
-            factory.password = "guest"
-
-            // Crea una conexión a RabbitMQ
-            val connection = factory.newConnection()
 
             // Crea un objeto Channel y selecciona un vhost y una cola
             val channel = connection.createChannel()
-            val vhost = "/"
+
             val queue = "queue"
             channel.queueDeclare(queue, false, false, false, null)
 
             // Envía un mensaje a la cola
-            val message = "$url:$id"
+            val message = "$url::$id"
             val body = message.toByteArray()
             channel.basicPublish("", queue, null, body)
             println("Sent message: $message")

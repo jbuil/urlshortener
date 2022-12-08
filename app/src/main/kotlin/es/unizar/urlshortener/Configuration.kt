@@ -47,11 +47,16 @@ class ApplicationConfiguration(
     @Bean
     fun logClickUseCase() = LogClickUseCaseImpl(clickRepositoryService())
 
+    @Bean
+    fun rabbitMQService() = RabbitMQServiceImpl(shortUrlRepositoryService())
+
+    @Bean
+    fun googleSafeBrowsing() = GoogleSafeBrowsingServiceImpl()
 
 
     @Bean
     fun createShortUrlUseCase() =
-        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService())
+        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService(), rabbitMQService(),googleSafeBrowsing())
 
     @Bean
     fun generateQRUseCase() = GenerateQRUseCaseImpl(shortUrlRepositoryService(), QRService())

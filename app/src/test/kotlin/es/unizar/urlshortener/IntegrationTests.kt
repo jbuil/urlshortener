@@ -205,4 +205,5 @@ class HttpRequestTest {
         assertThat(clickRow["created"]).isNotNull() // la fecha debe tener un valor
     }
 
+
 }
