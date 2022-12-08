@@ -8,7 +8,8 @@ import com.google.api.services.safebrowsing.model.FindThreatMatchesRequest
 import com.google.api.services.safebrowsing.model.FindThreatMatchesResponse
 import com.google.api.services.safebrowsing.model.ThreatEntry
 import com.google.api.services.safebrowsing.model.ThreatInfo
-import com.google.common.hash.*
+import com.google.common.hash.Hashing
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import com.rabbitmq.client.ConnectionFactory
 import com.rabbitmq.client.DeliverCallback
 import com.rabbitmq.client.Delivery
@@ -16,9 +17,11 @@ import es.unizar.urlshortener.core.*
 import io.github.g0dkar.qrcode.*
 import net.minidev.json.JSONObject
 import org.apache.commons.validator.routines.*
+import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.core.io.*
 import org.springframework.util.MimeTypeUtils.*
 import java.io.*
+import java.lang.Thread.sleep
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -66,37 +69,16 @@ class RabbitMQServiceImpl(
     private val connection = factory.newConnection()
 
 
-
-    override fun read(): String {
-        try {
-
-            // Crea un objeto Channel y selecciona un vhost y una cola
-            val channel = connection.createChannel()
-            val vhost = "/"
-            val queue = "queue"
-            // Lee un mensaje de la cola
-            val result = channel.basicGet(queue, true)
-            println("Leyendo....")
-            if (result != null) {
-                val message = String(result.body, Charsets.UTF_8)
-                println("Received message: $message")
-                val deliverCallback = DeliverCallback { consumerTag: String?, delivery: Delivery ->
-                    val message = String(delivery.body, StandardCharsets.UTF_8)
-                    println(" [x] Received '$message'")
-                    val (url,hash) = message.split("::")
-                    shortUrlRepository.updateSafe(hash,GoogleSafeBrowsingServiceImpl().isSafe(url))
-                }
-                channel.basicConsume(queue, true, deliverCallback) { consumerTag: String? -> }
-                return message
-            } else {
-                return ""
-            }
-
-        } catch (e: Exception) {
-            // Maneja cualquier error que ocurra durante la lectura de un mensaje desde el broker
-            return "Error durante la lectura de un mensaje desde el broker"
-        }
+    @RabbitListener(queues = arrayOf("queue"))
+    override fun read(message: String) {
+        // process the message
+        val (url,hash) = message.split("::")
+        println(url + hash)
+        // Duermes para comprobar la cola de broker
+       // sleep(10000)
+        shortUrlRepository.updateSafe(hash,GoogleSafeBrowsingServiceImpl().isSafe(url))
     }
+
 
     override fun write(url: String, id: String) {
         try {

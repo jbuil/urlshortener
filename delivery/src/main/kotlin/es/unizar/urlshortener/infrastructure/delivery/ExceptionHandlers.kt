@@ -19,10 +19,6 @@ class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     protected fun invalidUrls(ex: InvalidUrlException) = ErrorMessage(HttpStatus.BAD_REQUEST.value(), ex.message)
 
-    @ResponseBody
-    @ExceptionHandler(value = [UrlNotSafe::class])
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    protected fun qrUriNotFound(ex: UrlNotSafe) = ErrorMessage(HttpStatus.BAD_REQUEST.value(), ex.message)
 
     @ResponseBody
     @ExceptionHandler(value = [RedirectionNotFound::class])
@@ -37,7 +33,12 @@ class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
     @ResponseBody
     @ExceptionHandler(value = [UrlNotVerified::class])
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    protected fun urlNotVerified(ex: UrlNotVerified) = ErrorMessage(HttpStatus.SERVICE_UNAVAILABLE.value(), ex.message)
+    protected fun UrlNotVerified(ex: UrlNotVerified) = ErrorMessage(HttpStatus.SERVICE_UNAVAILABLE.value(), ex.message)
+
+    @ResponseBody
+    @ExceptionHandler(value = [UrlNotSafe::class])
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    protected fun UrlNotSafe(ex: UrlNotSafe) = ErrorMessage(HttpStatus.FORBIDDEN.value(), ex.message)
 }
 
 data class ErrorMessage(

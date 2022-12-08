@@ -184,7 +184,7 @@ class HttpRequestTest {
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(0)
 
         // Hacemos clic en la URL acortada
-        val click = mockMvc.perform(MockMvcRequestBuilders.get("/f684a3c4")
+        mockMvc.perform(MockMvcRequestBuilders.get("/f684a3c4")
                 .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:80.0) Gecko/20100101 Firefox/80.0")
                 .header("X-Forwarded-For", "127.0.0.1")
         ).andReturn()

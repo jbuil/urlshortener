@@ -29,12 +29,15 @@ public class FileControllerImpl (
 ) : FileController {
 
 
-    override fun index(): String{
+    fun index(): String{
         return "upload_URLs_File";
     }
+    @GetMapping("/update")
+        fun update(): String {
+            return "upload"
+        }
 
-
-
+    @GetMapping("/updatee")
     override fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String {
         if (file.isEmpty) {
             attributes.addFlashAttribute("message", "Please, select a file")

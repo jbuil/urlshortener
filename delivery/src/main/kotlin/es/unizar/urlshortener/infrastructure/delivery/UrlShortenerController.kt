@@ -80,7 +80,7 @@ class UrlShortenerControllerImpl(
 ) : UrlShortenerController {
 
     @GetMapping("/{id:(?!api|index).*}")
-    override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
+        override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
         redirectUseCase.redirectTo(id).let {
             var userAgent: UserAgent? = null
             val redirection = redirectUseCase.redirectTo(id)
@@ -88,7 +88,7 @@ class UrlShortenerControllerImpl(
                 userAgent = UserAgent.parse(request.getHeader("user-agent"))
             }
 
-            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr,
+            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr ?: "0.0.0.0",
                 platform = userAgent?.os?.toString() ,
                 browser = userAgent?.browser?.toString(),referrer = redirection.target))
 
@@ -97,19 +97,23 @@ class UrlShortenerControllerImpl(
             // y encabezado Retry-After configurado con el tiempo en el que se espera que el campo safe tenga un valor
             if (shortUrl != null) {
                 if (shortUrl.properties.safe == null) {
-                    val error = "{\"error\": \"URI de destino no validada todavía\"}"
+                    print("entrea\n")
+                   // val error = "{\"error\": \"URI de destino no validada todavía\"}"
                     val headers = HttpHeaders()
-                    val dateTimeFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss zzz")
-                    headers.set(RETRY_AFTER, dateTimeFormatter.format(Instant.ofEpochMilli(System.currentTimeMillis() + 50)))
-                    val status = HttpStatus.SERVICE_UNAVAILABLE
+                    val instant = Instant.ofEpochMilli(System.currentTimeMillis() + 50)
+                    headers.set(RETRY_AFTER, instant.toString())
+                   // val status = HttpStatus.SERVICE_UNAVAILABLE
 
-                    return ResponseEntity<Void>(headers, status)
+                    //return ResponseEntity<Void>(headers, status)
+                    throw UrlNotVerified(id)
                 }
             }
             val h = HttpHeaders()
+            shortUrl?.properties?.let { it1 -> println(it1.safe) }
             if (shortUrl != null) {
                 if (shortUrl.properties.safe == false) {
-                    return ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
+                    //return ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
+                    throw UrlNotSafe(id)
                 }
             }
             h.location = URI.create(it.target)
@@ -131,10 +135,7 @@ class UrlShortenerControllerImpl(
             val qr = assignQR(data.wantQR, url.path)
             val response = ShortUrlDataOut(
                 url = url,
-                qr = qr,
-                properties = mapOf(
-                    "safe" to it.properties.safe
-                )
+                qr = qr
             )
             ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
         }
@@ -158,7 +159,7 @@ class UrlShortenerControllerImpl(
         const val uploadFileEndpoint = "/upload"
     }
 
-    @GetMapping("/update")
+
     override  fun uploadFilePage(@RequestParam("file") file: MultipartFile, attribute : RedirectAttributes, request: HttpServletRequest) : ResponseEntity<String> =
         fileController.uploadFile(file, attribute).let {
             val h = HttpHeaders()

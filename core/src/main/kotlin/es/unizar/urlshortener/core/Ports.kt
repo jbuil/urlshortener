@@ -60,7 +60,7 @@ interface ValidatorService {
  * **Note**: It is a design decision to create this port. It could be part of the core .
  */
 interface RabbitMQService{
-    fun read(): String
+    fun read(message: String)
     fun write(url: String, id: String)
 }/**
  * [GoogleSafeBrowsingService] is the port to the service that validates if an url can be shortened.

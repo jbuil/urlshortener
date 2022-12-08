@@ -78,6 +78,8 @@ project(":delivery") {
         "implementation"("com.rabbitmq:amqp-client:latest.release")
         "implementation"("com.google.api-client:google-api-client:latest.release")
         "implementation" ("com.google.apis:google-api-services-safebrowsing:v4-rev20190923-1.30.3")
+        "implementation"("org.springframework.amqp:spring-rabbit:3.0.0")
+
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
     }
