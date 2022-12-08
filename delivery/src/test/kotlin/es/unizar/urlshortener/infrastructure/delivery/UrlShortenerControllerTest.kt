@@ -1,20 +1,27 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import GenerateQRUseCase
+import com.rabbitmq.client.AMQP
+import com.rabbitmq.client.ConnectionFactory
+import com.rabbitmq.client.DefaultConsumer
+import com.rabbitmq.client.Envelope
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
+import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
 import es.unizar.urlshortener.core.usecases.LogClickUseCase
 import es.unizar.urlshortener.core.usecases.RedirectUseCase
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.never
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
+import org.mockito.kotlin.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
@@ -27,6 +34,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.mockito.Mockito.mock
+
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import javax.xml.bind.JAXBElement
 
@@ -204,6 +213,151 @@ class UrlShortenerControllerTest {
         // Comprobamos si se han acortado todas las URLs
         assertEquals(urls.size, results.size)
     }
+    @Test
+    fun testRabbitMQConnection() {
+        // Dirección del servidor de RabbitMQ
+        val host = "localhost"
+        // Puerto del servidor de RabbitMQ
+        val port = 5672
+
+        // Crea un objeto ConnectionFactory y establece los parámetros de conexión
+        val factory = ConnectionFactory()
+        factory.host = host
+        factory.port = port
+        factory.username = "guest"
+        factory.password = "guest"
+
+        // Crea una conexión a RabbitMQ
+        val connection = factory.newConnection()
+
+        // Verifica que la conexión se haya establecido correctamente
+        assertTrue(connection.isOpen, "Could not connect to RabbitMQ server at $host:$port")
+    }
+    @Test
+    fun testWrite() {
+        val rabbitMQService = RabbitMQServiceImpl()
+        // Envía un mensaje a una cola de RabbitMQ
+        val url = "https://example.com"
+        val id = "abc123"
+        rabbitMQService.write(url, id)
+
+        // Verifica que el mensaje se haya enviado correctamente
+        val factory = ConnectionFactory()
+        factory.setUri("amqp://localhost")
+
+        val connection = factory.newConnection()
+        val channel = connection.createChannel()
+
+        // Obtiene el mensaje de la cola "queue"
+        val queue = "queue"
+        val consumer = object : DefaultConsumer(channel) {
+            override fun handleDelivery(consumerTag: String, envelope: Envelope,
+                                        properties: AMQP.BasicProperties, body: ByteArray) {
+                // Verifica que el cuerpo del mensaje sea igual a "$url:$id"
+                assertEquals("$url:$id", String(body))
+            }
+        }
+        channel.basicConsume(queue, true, consumer)
+    }
+    @Test
+    fun testReadMessage() {
+        // Crea un objeto ConnectionFactory y establece los parámetros de conexión
+        val factory = ConnectionFactory()
+        factory.host = "localhost"
+        factory.port = 5672
+        factory.username = "guest"
+        factory.password = "guest"
+
+        // Crea una conexión a RabbitMQ
+        val connection = factory.newConnection()
+
+        // Crea un objeto Channel y selecciona un vhost y una cola
+        val channel = connection.createChannel()
+        val vhost = "/"
+        val queue = "queue"
+        channel.queueDeclare(queue, false, false, false, null)
+
+        // Crea una instancia de RabbitMQService
+        val rabbitMQService = RabbitMQServiceImpl()
+
+
+        // Envía un mensaje a la cola
+        val message = "Hello world!"
+        val body = message.toByteArray()
+        channel.basicPublish("", queue, null, body)
+
+        // Llamar a read para leer el mensaje enviado
+        val receivedMessage = rabbitMQService.read()
+
+        // Comprueba que el mensaje leído sea el mismo que se envió
+        assertEquals(message, receivedMessage)
+    }
+    @Test
+    fun testRabbitMQService() {
+        // Crea un objeto RabbitMQService y configúralo con
+        // los parámetros de conexión adecuados
+        val rabbitMQService = RabbitMQServiceImpl()
+
+        // Envía un mensaje de prueba a la cola "queue"
+        rabbitMQService.write("Hello, world!", "queue")
+
+        // Comprueba si el mensaje ha sido escrito correctamente en la cola
+        //assertTrue(rabbitMQService.read())
+    }
+
+    @Test
+    fun testRabbitMQServiceIsUsed() {
+        // Creamos un mock del servicio de RabbitMQ
+        val rabbitMQService = mock(RabbitMQService::class.java)
+
+        // Creamos una instancia del caso de uso que utiliza el mock del servicio de RabbitMQ
+        val createShortUrlUseCase = CreateShortUrlUseCaseImpl(
+            shortUrlRepository = mock(ShortUrlRepositoryService::class.java),
+            validatorService = mock(ValidatorService::class.java),
+            hashService = mock(HashService::class.java),
+            rabbitMQService = rabbitMQService,
+            safeBrowsingService = mock(GoogleSafeBrowsingService::class.java)
+        )
+
+        // Llamamos al caso de uso con una URL válida
+        createShortUrlUseCase.create("http://google.com", ShortUrlProperties(ip = "127.0.0.1"))
+
+        // Verificamos que se llama al servicio de RabbitMQ con la URL y el ID correctos
+        verify(rabbitMQService).write("http://google.com", "f684a3c4")
+    }
+    @Test
+    fun testGoogleSafeBrowsingService() {
+        // URL de prueba que se considera segura
+        val testUrlSafe = "https://www.google.com"
+        val testUrlNotSafe = "https://www.zipl.in/construction/slider/up/"
+
+        // Inicializar el servicio de Google Safe Browsing
+        val googleSafeBrowsingService = GoogleSafeBrowsingServiceImpl()
+
+        // Llamar al método isSafe del servicio de Google Safe Browsing
+        val isSafe = googleSafeBrowsingService.isSafe(testUrlSafe)
+        val isNotSafe = googleSafeBrowsingService.isSafe(testUrlNotSafe)
+        // Verificar que el resultado sea el esperado
+        assertTrue(isSafe)
+        assertFalse(isNotSafe)
+    }
+    @Test
+    fun testCreateShortUrlWithUnsafeUrl() {
+        // URL de prueba que se considera insegura
+        val testUrl = "https://www.zipl.in/construction/slider/up/"
+
+        given(
+            createShortUrlUseCase.create(
+                url = testUrl,
+                data = ShortUrlProperties(ip = "127.0.0.1")
+            )
+        ).willAnswer { throw UrlNotSafe(testUrl) }
+    }
+
+
+
+
+
 
 
 }

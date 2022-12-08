@@ -20,14 +20,7 @@ interface ShortUrlRepositoryService {
     fun save(su: ShortUrl): ShortUrl
 }
 
-/**
- * [ValidatorService] is the port to the service that validates if an url can be shortened.
- *
- * **Note**: It is a design decision to create this port. It could be part of the core .
- */
-interface ValidatorService {
-    fun isValid(url: String): Boolean
-}
+
 
 /**
  * [HashService] is the port to the service that creates a hash from a URL.
@@ -46,5 +39,34 @@ interface HashService {
 interface QRService {
     fun qrEncode(hash: String) : ByteArrayResource
 }
+/**
+ * [ValidatorService] is the port to the service that validates if an url can be shortened.
+ *
+ * **Note**: It is a design decision to create this port. It could be part of the core .
+ */
+interface ValidatorService {
+    fun isValid(url: String): Boolean
 
+    //fun isReachable(url: String): Boolean
+
+    //fun isSecure(url: String): Boolean
+
+    //fun sendMessage(url: String, hash: String)
+}
+/**
+ * [RabbitMQService] is the port to the service that validates if an url can be shortened.
+ *
+ * **Note**: It is a design decision to create this port. It could be part of the core .
+ */
+interface RabbitMQService{
+    fun read(): String
+    fun write(url: String, id: String)
+}/**
+ * [GoogleSafeBrowsingService] is the port to the service that validates if an url can be shortened.
+ *
+ * **Note**: It is a design decision to create this port. It could be part of the core .
+ */
+interface GoogleSafeBrowsingService{
+    fun isSafe(url: String): Boolean
+}
 

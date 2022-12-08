@@ -75,7 +75,9 @@ project(":delivery") {
         "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
         "implementation" ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
         "implementation"("ru.chermenin:kotlin-user-agents:0.2.2")
-
+        "implementation"("com.rabbitmq:amqp-client:latest.release")
+        "implementation"("com.google.api-client:google-api-client:latest.release")
+        "implementation" ("com.google.apis:google-api-services-safebrowsing:v4-rev20190923-1.30.3")
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
     }
