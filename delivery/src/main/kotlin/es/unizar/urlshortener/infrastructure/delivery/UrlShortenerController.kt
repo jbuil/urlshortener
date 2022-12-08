@@ -9,9 +9,12 @@ import org.springframework.hateoas.server.mvc.*
 import org.springframework.http.*
 import org.springframework.http.MediaType.*
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import ru.chermenin.ua.UserAgent
 import java.net.*
 import javax.servlet.http.*
+
 
 /**
  * The specification of the controller.
@@ -33,6 +36,8 @@ interface UrlShortenerController {
     fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
 
     fun generateQR(hash: String, request: HttpServletRequest) : ResponseEntity<ByteArrayResource>
+
+    fun uploadFilePage(file: MultipartFile,attribute : RedirectAttributes , request: HttpServletRequest) : ResponseEntity<String>
 
 }
 
@@ -65,7 +70,8 @@ class UrlShortenerControllerImpl(
     val redirectUseCase: RedirectUseCase,
     val logClickUseCase: LogClickUseCase,
     val createShortUrlUseCase: CreateShortUrlUseCase,
-    val generateQRUseCase: GenerateQRUseCase
+    val generateQRUseCase: GenerateQRUseCase,
+    val fileController: FileController
 ) : UrlShortenerController {
 
     @GetMapping("/{id:(?!api|index).*}")
@@ -123,5 +129,14 @@ class UrlShortenerControllerImpl(
     companion object {
         const val baseURI = "http://localhost"
         const val qrEndpoint  = "/qr"
+        const val uploadFileEndpoint = "/upload"
     }
+
+    @GetMapping("/update")
+    override  fun uploadFilePage(@RequestParam("file") file: MultipartFile, attribute : RedirectAttributes, request: HttpServletRequest) : ResponseEntity<String> =
+        fileController.uploadFile(file, attribute).let {
+            val h = HttpHeaders()
+            h.set(CONTENT_TYPE, IMAGE_PNG.toString())
+            ResponseEntity<String>(it, h, HttpStatus.OK)
+        }
 }
