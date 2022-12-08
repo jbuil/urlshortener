@@ -28,25 +28,19 @@ class CreateShortUrlUseCaseImpl(
             val deferredShortUrl = async {
                 // Code to shorten the URL goes here
                 if (validatorService.isValid(url)) {
-                    if( safeBrowsingService.isSafe(url)){
                         val id: String = hashService.hasUrl(url)
                         val su = ShortUrl(
                             hash = id,
                             redirection = Redirection(target = url),
                             properties = ShortUrlProperties(
-                                safe = data.safe,
                                 ip = data.ip,
                                 sponsor = data.sponsor
                             )
                         )
                         rabbitMQService.write(url, id)
                         shortUrlRepository.save(su)
-                    }
-                    else{
-                        throw UrlNotSafe(url)
-                    }
-
-                } else {
+                }
+                else {
                     throw InvalidUrlException(url)
                 }
             }

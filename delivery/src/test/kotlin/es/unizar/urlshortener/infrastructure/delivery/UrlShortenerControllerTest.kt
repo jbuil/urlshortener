@@ -214,28 +214,37 @@ class UrlShortenerControllerTest {
         assertEquals(urls.size, results.size)
     }
     @Test
-    fun testRabbitMQConnection() {
-        // Dirección del servidor de RabbitMQ
-        val host = "localhost"
-        // Puerto del servidor de RabbitMQ
-        val port = 5672
+    fun testRead() {
+        val shortUrlRepository = mock(ShortUrlRepositoryService::class.java)
 
-        // Crea un objeto ConnectionFactory y establece los parámetros de conexión
+        val rabbitMQService = RabbitMQServiceImpl(shortUrlRepository)
+        // Create a ConnectionFactory and set the connection parameters
         val factory = ConnectionFactory()
-        factory.host = host
-        factory.port = port
+        factory.host = "localhost"
         factory.username = "guest"
         factory.password = "guest"
 
-        // Crea una conexión a RabbitMQ
+        // Create a connection to the RabbitMQ server
         val connection = factory.newConnection()
 
-        // Verifica que la conexión se haya establecido correctamente
-        assertTrue(connection.isOpen, "Could not connect to RabbitMQ server at $host:$port")
+
+        // Set up the mock short URL repository to return a sample URL
+        val url = "http://example.com"
+        val shortUrl = ShortUrl("123456", Redirection(url))
+        given(shortUrlRepository.findByKey("123456")).willReturn(shortUrl)
+        val channel = connection.createChannel()
+        val queue = "queue"
+        channel.queuePurge(queue)
+        // Write a message to the queue
+        rabbitMQService.write(url, "123456")
+
+        // Read the message from the queue and verify the contents
+        val message = rabbitMQService.read()
+        assertEquals("$url::123456", message)
     }
     @Test
     fun testWrite() {
-        val rabbitMQService = RabbitMQServiceImpl()
+        val rabbitMQService = RabbitMQServiceImpl(mock())
         // Envía un mensaje a una cola de RabbitMQ
         val url = "https://example.com"
         val id = "abc123"
@@ -275,10 +284,10 @@ class UrlShortenerControllerTest {
         val channel = connection.createChannel()
         val vhost = "/"
         val queue = "queue"
-        channel.queueDeclare(queue, false, false, false, null)
+        val shortUrlRepository =  mock(ShortUrlRepositoryService::class.java)
 
         // Crea una instancia de RabbitMQService
-        val rabbitMQService = RabbitMQServiceImpl()
+        val rabbitMQService = RabbitMQServiceImpl(shortUrlRepository)
 
 
         // Envía un mensaje a la cola
@@ -296,7 +305,7 @@ class UrlShortenerControllerTest {
     fun testRabbitMQService() {
         // Crea un objeto RabbitMQService y configúralo con
         // los parámetros de conexión adecuados
-        val rabbitMQService = RabbitMQServiceImpl()
+        val rabbitMQService = RabbitMQServiceImpl(mock(ShortUrlRepositoryService::class.java))
 
         // Envía un mensaje de prueba a la cola "queue"
         rabbitMQService.write("Hello, world!", "queue")
@@ -313,17 +322,16 @@ class UrlShortenerControllerTest {
         // Creamos una instancia del caso de uso que utiliza el mock del servicio de RabbitMQ
         val createShortUrlUseCase = CreateShortUrlUseCaseImpl(
             shortUrlRepository = mock(ShortUrlRepositoryService::class.java),
-            validatorService = mock(ValidatorService::class.java),
-            hashService = mock(HashService::class.java),
+            validatorService = ValidatorServiceImpl(),
+            hashService = HashServiceImpl(),
             rabbitMQService = rabbitMQService,
-            safeBrowsingService = mock(GoogleSafeBrowsingService::class.java)
+            safeBrowsingService =  GoogleSafeBrowsingServiceImpl()
         )
-
         // Llamamos al caso de uso con una URL válida
         createShortUrlUseCase.create("http://google.com", ShortUrlProperties(ip = "127.0.0.1"))
 
         // Verificamos que se llama al servicio de RabbitMQ con la URL y el ID correctos
-        verify(rabbitMQService).write("http://google.com", "f684a3c4")
+        verify(rabbitMQService).write("http://google.com", "58f3ae21")
     }
     @Test
     fun testGoogleSafeBrowsingService() {

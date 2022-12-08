@@ -11,7 +11,11 @@ import org.springframework.http.MediaType.*
 import org.springframework.web.bind.annotation.*
 import ru.chermenin.ua.UserAgent
 import java.net.*
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.util.*
 import javax.servlet.http.*
+
 
 /**
  * The specification of the controller.
@@ -42,7 +46,7 @@ interface UrlShortenerController {
 data class ShortUrlDataIn(
     val url: String,
     val wantQR: Boolean?,
-    val sponsor: String? = null
+    val sponsor: String? = null,
 )
 
 /**
@@ -51,7 +55,7 @@ data class ShortUrlDataIn(
 data class ShortUrlDataOut(
     val url: URI? = null,
     val qr: URI? = null,
-    val properties: Map<String, Any> = emptyMap()
+    val properties: Map<String, Any> = emptyMap(),
 )
 
 
@@ -65,7 +69,8 @@ class UrlShortenerControllerImpl(
     val redirectUseCase: RedirectUseCase,
     val logClickUseCase: LogClickUseCase,
     val createShortUrlUseCase: CreateShortUrlUseCase,
-    val generateQRUseCase: GenerateQRUseCase
+    val generateQRUseCase: GenerateQRUseCase,
+    val shortUrlRepository: ShortUrlRepositoryService,
 ) : UrlShortenerController {
 
     @GetMapping("/{id:(?!api|index).*}")
@@ -76,10 +81,31 @@ class UrlShortenerControllerImpl(
             if(request.getHeader("user-agent") != null){
                 userAgent = UserAgent.parse(request.getHeader("user-agent"))
             }
+
             logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr,
                 platform = userAgent?.os?.toString() ,
                 browser = userAgent?.browser?.toString(),referrer = redirection.target))
+
+            val shortUrl = shortUrlRepository.findByKey(id)
+            // Si el campo safe del objeto ShortUrl no tiene un valor, devolver una respuesta HTTP con código 503
+            // y encabezado Retry-After configurado con el tiempo en el que se espera que el campo safe tenga un valor
+            if (shortUrl != null) {
+                if (shortUrl.properties.safe == null) {
+                    val error = "{\"error\": \"URI de destino no validada todavía\"}"
+                    val headers = HttpHeaders()
+                    val dateTimeFormatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss zzz")
+                    headers.set(RETRY_AFTER, dateTimeFormatter.format(Instant.ofEpochMilli(System.currentTimeMillis() + 50)))
+                    val status = HttpStatus.SERVICE_UNAVAILABLE
+
+                    return ResponseEntity<Void>(headers, status)
+                }
+            }
             val h = HttpHeaders()
+            if (shortUrl != null) {
+                if (shortUrl.properties.safe == false) {
+                    return ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
+                }
+            }
             h.location = URI.create(it.target)
             ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
         }
