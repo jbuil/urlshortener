@@ -27,12 +27,14 @@ interface FileController {
 public class FileControllerImpl (
         val createShortUrlUseCase : CreateShortUrlUseCase
 ) : FileController {
-   // @GetMapping("/")
-  //  override fun index(): String{
-  //      return "upload_URLs_File";
-  //  }
 
-    @PostMapping("/upload_URLs_File")
+
+    override fun index(): String{
+        return "upload_URLs_File";
+    }
+
+
+
     override fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String {
         if (file.isEmpty) {
             attributes.addFlashAttribute("message", "Please, select a file")
