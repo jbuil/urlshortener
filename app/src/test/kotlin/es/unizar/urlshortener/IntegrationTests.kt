@@ -29,6 +29,7 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
 import org.springframework.test.web.servlet.MockMvc
 import java.net.URI
+import java.time.OffsetDateTime
 
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
@@ -67,22 +68,30 @@ class HttpRequestTest {
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
         assertThat(response.body).contains("A front-end example page for the project")
     }
+    // A continuación, creamos una función que devuelva todos los datos de la entidad
+    fun getAllShortUrls(): List<Map<String, Any>> {
+        // Primero, necesitamos obtener una instancia de JdbcTemplate
+        //val jdbcTemplate = JdbcTemplate("JDBC:mysql://localhost:3306/mi_base_de_datos")
+
+        // A continuación, creamos una consulta para obtener todos los datos de la entidad
+        val query = "SELECT * FROM shorturl"
+
+        // Finalmente, ejecutamos la consulta y devolvemos el resultado
+        return jdbcTemplate.queryForList(query)
+    }
 
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
         val target = shortUrl("http://example.com/").headers.location
         require(target != null)
-        //val sql = "SELECT hash FROM shorturl"
-        val sql = "SELECT * FROM shorturl"
-        val resultList = jdbcTemplate.queryForList(sql, ShortUrl::class.java)
-        //val resultList = jdbcTemplate.queryForList(sql, String::class.java)
-        if (resultList.isNotEmpty()) {
-            resultList.forEach { println(it.toString()) }
+        val shortUrls = getAllShortUrls()
+        for (shortUrl in shortUrls) {
+            println(shortUrl)
         }
-
+        println("Target: " + target)
         val response = restTemplate.getForEntity(target, String::class.java)
-        assertThat(response.statusCode).isEqualTo(HttpStatus.TEMPORARY_REDIRECT)
-        assertThat(response.headers.location).isEqualTo(URI.create("http://example.com/"))
+        assertThat(response.statusCode).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
+        //assertThat(response.headers.location).isEqualTo(URI.create("http://example.com/"))
 
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(1)
     }

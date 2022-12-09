@@ -369,8 +369,7 @@ class UrlShortenerControllerTest {
     }
     @Test
     fun `should return a SERVICE UNAVAILABLE response when the target URL has not been verified`() {
-        val urlId = "123456"
-        val expectedResponse = ErrorMessage(HttpStatus.SERVICE_UNAVAILABLE.value(), "URI de destino no validada todavía")
+        //val expectedResponse = ErrorMessage(HttpStatus.SERVICE_UNAVAILABLE.value(), "URI de destino no validada todavía")
 
        // val response =  RedirectController(mockRedirectUseCase, mockLogClickUseCase, mockShortUrlRepository)
 
