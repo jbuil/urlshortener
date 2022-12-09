@@ -2,6 +2,7 @@ package es.unizar.urlshortener.infrastructure.delivery
 
 import es.unizar.urlshortener.core.*
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseBody
@@ -32,8 +33,10 @@ class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
 
     @ResponseBody
     @ExceptionHandler(value = [UrlNotVerified::class])
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    protected fun UrlNotVerified(ex: UrlNotVerified) = ErrorMessage(HttpStatus.SERVICE_UNAVAILABLE.value(), ex.message)
+    protected fun UrlNotVerified(ex: UrlNotVerified) =
+        ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+            .header("Retry-after", "10000")
+    .body(ErrorMessage(HttpStatus.SERVICE_UNAVAILABLE.value(), ex.message))
 
     @ResponseBody
     @ExceptionHandler(value = [UrlNotSafe::class])

@@ -73,7 +73,7 @@ class RabbitMQServiceImpl(
     override fun read(message: String) {
         // process the message
         val (url,hash) = message.split("::")
-        println(url + hash)
+        println("Reading for queue: " + url + hash)
         // Duermes para comprobar la cola de broker
        // sleep(10000)
         shortUrlRepository.updateSafe(hash,GoogleSafeBrowsingServiceImpl().isSafe(url))
