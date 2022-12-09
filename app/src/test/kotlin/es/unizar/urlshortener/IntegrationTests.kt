@@ -1,6 +1,7 @@
 package es.unizar.urlshortener
 
 import com.fasterxml.jackson.databind.JsonNode
+import es.unizar.urlshortener.core.ShortUrl
 import es.unizar.urlshortener.infrastructure.delivery.ShortUrlDataOut
 import es.unizar.urlshortener.infrastructure.delivery.InfoHTTPHeaderOut
 import net.minidev.json.JSONValue
@@ -21,6 +22,7 @@ import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.*
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.query
 import org.springframework.test.jdbc.JdbcTestUtils
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.util.LinkedMultiValueMap
@@ -70,6 +72,14 @@ class HttpRequestTest {
     fun `redirectTo returns a redirect when the key exists`() {
         val target = shortUrl("http://example.com/").headers.location
         require(target != null)
+        //val sql = "SELECT hash FROM shorturl"
+        val sql = "SELECT * FROM shorturl"
+        val resultList = jdbcTemplate.queryForList(sql, ShortUrl::class.java)
+        //val resultList = jdbcTemplate.queryForList(sql, String::class.java)
+        if (resultList.isNotEmpty()) {
+            resultList.forEach { println(it.toString()) }
+        }
+
         val response = restTemplate.getForEntity(target, String::class.java)
         assertThat(response.statusCode).isEqualTo(HttpStatus.TEMPORARY_REDIRECT)
         assertThat(response.headers.location).isEqualTo(URI.create("http://example.com/"))
