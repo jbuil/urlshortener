@@ -49,7 +49,7 @@ interface UrlShortenerController {
  */
 data class ShortUrlDataIn(
     val url: String,
-    val wantQR: Boolean?,
+    val wantQR: String,
     val sponsor: String? = null,
 )
 
@@ -130,7 +130,7 @@ class UrlShortenerControllerImpl(
             val h = HttpHeaders()
             val url = linkTo<UrlShortenerControllerImpl> { redirectTo(it.hash, request) }.toUri()
             h.location = url
-            val qr = assignQR(data.wantQR, url.path)
+            val qr = if (data.wantQR == ("Yes")) assignQR(url.path) else null
             val response = ShortUrlDataOut(
                 url = url,
                 qr = qr
@@ -146,13 +146,10 @@ class UrlShortenerControllerImpl(
             ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)
         }
 
-    fun assignQR(wantQR: Boolean?, path: String): URI? = when (wantQR) {
-        true -> URI.create(baseURI + path + qrEndpoint)
-        else -> null
-    }
+    fun assignQR(path: String): URI = URI.create(baseURI + path + qrEndpoint)
 
     companion object {
-        const val baseURI = "http://localhost"
+        const val baseURI = "http://localhost:8080"
         const val qrEndpoint  = "/qr"
         const val uploadFileEndpoint = "/upload"
     }
