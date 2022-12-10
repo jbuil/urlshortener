@@ -1,6 +1,5 @@
 package es.unizar.urlshortener.core.usecases
-import kotlinx.coroutines.*
-import kotlinx.coroutines.runBlocking
+
 import es.unizar.urlshortener.core.*
 
 /**
@@ -10,7 +9,7 @@ import es.unizar.urlshortener.core.*
  * **Note**: This is an example of functionality.
  */
 interface CreateShortUrlUseCase {
-    fun create(url: String, data: ShortUrlProperties): ShortUrl
+    suspend fun create(url: String, data: ShortUrlProperties): ShortUrl
 }
 
 /**
@@ -20,34 +19,27 @@ class CreateShortUrlUseCaseImpl(
     private val shortUrlRepository: ShortUrlRepositoryService,
     private val validatorService: ValidatorService,
     private val hashService: HashService,
-    private val rabbitMQService: RabbitMQService,
-    private val safeBrowsingService: GoogleSafeBrowsingService
+    private val rabbitMQService: RabbitMQService
 ) : CreateShortUrlUseCase {
-    override fun create(url: String, data: ShortUrlProperties): ShortUrl {
-         return runBlocking {
-            val deferredShortUrl = async {
-                // Code to shorten the URL goes here
-                if (validatorService.isValid(url)) {
-                        val id: String = hashService.hasUrl(url)
-                        val su = ShortUrl(
-                            hash = id,
-                            redirection = Redirection(target = url),
-                            properties = ShortUrlProperties(
-                                ip = data.ip,
-                                sponsor = data.sponsor
-                            )
-                        )
-                        rabbitMQService.write(url, id)
-                        shortUrlRepository.save(su)
-                }
-                else {
-                    throw InvalidUrlException(url)
-                }
-            }
-
-            // Return the shortened URL
-            return@runBlocking deferredShortUrl.await()
+    override suspend fun create(url: String, data: ShortUrlProperties): ShortUrl {
+        // Code to shorten the URL goes here
+        if (!validatorService.isValid(url)) {
+            throw InvalidUrlException(url)
         }
-    }
+        val id: String = hashService.hasUrl(url)
+        val su = ShortUrl(
+            hash = id,
+            redirection = Redirection(target = url),
+            properties = ShortUrlProperties(
+                ip = data.ip,
+                sponsor = data.sponsor
+            )
+        )
+        rabbitMQService.write(url, id)
+        shortUrlRepository.save(su)
 
+        // Return the shortened URL
+        return su
+    }
 }
+

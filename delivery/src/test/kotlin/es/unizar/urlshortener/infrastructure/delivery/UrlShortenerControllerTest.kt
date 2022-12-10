@@ -12,15 +12,9 @@ import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
 import es.unizar.urlshortener.core.usecases.LogClickUseCase
 import es.unizar.urlshortener.core.usecases.RedirectUseCase
 import kotlinx.coroutines.*
-import net.bytebuddy.implementation.FixedValue.nullValue
-import net.minidev.json.JSONObject
-import org.assertj.core.api.Assertions.not
 import org.hamcrest.CoreMatchers.notNullValue
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchers.anyString
 import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.never
 import org.mockito.kotlin.*
@@ -37,10 +31,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.mockito.Mockito.mock
+import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.http.HttpStatus
-
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
-import javax.xml.bind.JAXBElement
 
 @WebMvcTest
 @ContextConfiguration(
@@ -97,7 +89,7 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    fun `creates returns a basic redirect if it can compute a hash`() {
+    suspend fun `creates returns a basic redirect if it can compute a hash`() {
         given(
             createShortUrlUseCase.create(
                 url = "http://example.com/",
@@ -117,7 +109,7 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    fun `creates returns bad request if it can compute a hash`() {
+    suspend fun `creates returns bad request if it can compute a hash`() {
         given(
             createShortUrlUseCase.create(
                 url = "ftp://example.com/",
@@ -157,7 +149,7 @@ class UrlShortenerControllerTest {
 
     @OptIn(DelicateCoroutinesApi::class)
     @Test
-    fun testUrlShortenerIsAsync() {
+    suspend fun testUrlShortenerIsAsync() {
 
         // Configuramos el mock para que devuelva una URL acortada
         // cada vez que se le llame con una URL válida
@@ -225,8 +217,8 @@ class UrlShortenerControllerTest {
     }
     fun testRead() {
         val shortUrlRepository = mock(ShortUrlRepositoryService::class.java)
-
-        val rabbitMQService = RabbitMQServiceImpl(shortUrlRepository)
+        val rabbitTemplate = RabbitTemplate()
+        val rabbitMQService = RabbitMQServiceImpl(rabbitTemplate,shortUrlRepository)
         // Create a ConnectionFactory and set the connection parameters
         val factory = ConnectionFactory()
         factory.host = "localhost"
@@ -253,7 +245,9 @@ class UrlShortenerControllerTest {
     }
     @Test
     fun testWrite() {
-        val rabbitMQService = RabbitMQServiceImpl(mock())
+        val shortUrlRepository = mock(ShortUrlRepositoryService::class.java)
+        val rabbitTemplate = RabbitTemplate()
+        val rabbitMQService = RabbitMQServiceImpl(rabbitTemplate,shortUrlRepository)
         // Envía un mensaje a una cola de RabbitMQ
         val url = "https://example.com"
         val id = "abc123"
@@ -280,8 +274,9 @@ class UrlShortenerControllerTest {
     @Test
     fun testRabbitMQService() {
         // Crea un objeto RabbitMQService y configúralo con
-        // los parámetros de conexión adecuados
-        val rabbitMQService = RabbitMQServiceImpl(mock(ShortUrlRepositoryService::class.java))
+        val shortUrlRepository = mock(ShortUrlRepositoryService::class.java)
+        val rabbitTemplate = RabbitTemplate()
+        val rabbitMQService = RabbitMQServiceImpl(rabbitTemplate,shortUrlRepository)
 
         // Envía un mensaje de prueba a la cola "queue"
         rabbitMQService.write("Hello, world!", "queue")
@@ -291,7 +286,7 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    fun testRabbitMQServiceIsUsed() {
+    suspend fun testRabbitMQServiceIsUsed() {
         // Creamos un mock del servicio de RabbitMQ
         val rabbitMQService = mock(RabbitMQService::class.java)
 
@@ -300,9 +295,7 @@ class UrlShortenerControllerTest {
             shortUrlRepository = mock(ShortUrlRepositoryService::class.java),
             validatorService = ValidatorServiceImpl(),
             hashService = HashServiceImpl(),
-            rabbitMQService = rabbitMQService,
-            safeBrowsingService =  GoogleSafeBrowsingServiceImpl()
-        )
+            rabbitMQService = rabbitMQService)
         // Llamamos al caso de uso con una URL válida
         createShortUrlUseCase.create("http://google.com", ShortUrlProperties(ip = "127.0.0.1"))
 
@@ -326,7 +319,7 @@ class UrlShortenerControllerTest {
         assertFalse(isNotSafe)
     }
     @Test
-    fun testCreateShortUrlWithUnsafeUrl() {
+    suspend fun testCreateShortUrlWithUnsafeUrl() {
         // URL de prueba que se considera insegura
         val testUrl = "https://www.zipl.in/construction/slider/up/"
 
@@ -338,7 +331,7 @@ class UrlShortenerControllerTest {
         ).willAnswer { throw UrlNotSafe(testUrl) }
     }
 
-    fun `when redirectTo is called and short url is not verified then return SERVICE_UNAVAILABLE`() {
+    suspend fun `when redirectTo is called and short url is not verified then return SERVICE_UNAVAILABLE`() {
         // Arrange
         given(
             createShortUrlUseCase.create(
@@ -354,7 +347,7 @@ class UrlShortenerControllerTest {
             .andExpect(jsonPath("$.statusCode").value(HttpStatus.SERVICE_UNAVAILABLE.value()))
             .andExpect(jsonPath("$.message").value("URI de destino no validada todavía"))
     }
-    fun `when redirectTo is called and short url is not safe then throw UrlNotSafe`()
+    suspend fun `when redirectTo is called and short url is not safe then throw UrlNotSafe`()
     {
         given(
             createShortUrlUseCase.create(

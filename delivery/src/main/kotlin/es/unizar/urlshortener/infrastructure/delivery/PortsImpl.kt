@@ -1,27 +1,14 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
-import com.google.api.client.googleapis.services.GoogleClientRequestInitializer
-import com.google.api.client.json.gson.GsonFactory
-import com.google.api.services.safebrowsing.Safebrowsing
-import com.google.api.services.safebrowsing.model.FindThreatMatchesRequest
-import com.google.api.services.safebrowsing.model.FindThreatMatchesResponse
-import com.google.api.services.safebrowsing.model.ThreatEntry
-import com.google.api.services.safebrowsing.model.ThreatInfo
 import com.google.common.hash.Hashing
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import com.rabbitmq.client.ConnectionFactory
-import com.rabbitmq.client.DeliverCallback
-import com.rabbitmq.client.Delivery
 import es.unizar.urlshortener.core.*
 import io.github.g0dkar.qrcode.*
 import net.minidev.json.JSONObject
 import org.apache.commons.validator.routines.*
-import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.core.io.*
 import org.springframework.util.MimeTypeUtils.*
 import java.io.*
-import java.lang.Thread.sleep
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -60,43 +47,29 @@ class QRServiceImpl : QRService {
 }
 
 class RabbitMQServiceImpl(
-    private val shortUrlRepository: ShortUrlRepositoryService
+    private val rabbitTemplate: RabbitTemplate,
+    private val shortUrlRepository: ShortUrlRepositoryService,
 ) : RabbitMQService {
-    // Crea un objeto ConnectionFactory y establece los parámetros de conexión
-    private val factory = ConnectionFactory()
 
-    // Crea una conexión a RabbitMQ
-    private val connection = factory.newConnection()
-
-
-    @RabbitListener(queues = arrayOf("queue"))
     override fun read(message: String) {
-        // process the message
-        val (url,hash) = message.split("::")
-        println("Reading for queue: " + url + hash)
-        // Duermes para comprobar la cola de broker
-       // sleep(10000)
-        shortUrlRepository.updateSafe(hash,GoogleSafeBrowsingServiceImpl().isSafe(url))
+        // Procesa el mensaje
+        val (url, hash) = message.split("::")
+        println("Leyendo para la cola: $url $hash")
+        // Duerme para comprobar la cola de broker
+        // sleep(10000)
+        var message: String? = rabbitTemplate.receiveAndConvert("miCola", String::class.java) as String?
+        shortUrlRepository.updateSafe(hash, GoogleSafeBrowsingServiceImpl().isSafe(url))
     }
-
-
     override fun write(url: String, id: String) {
-        try {
-
-            // Crea un objeto Channel y selecciona un vhost y una cola
-            val channel = connection.createChannel()
-
-            val queue = "queue"
-            channel.queueDeclare(queue, false, false, false, null)
-
-            // Envía un mensaje a la cola
-            val message = "$url::$id"
-            val body = message.toByteArray()
-            channel.basicPublish("", queue, null, body)
-            println("Sent message: $message")
-        } catch (e: Exception) {
-            // Maneja cualquier error que ocurra durante la escritura de un mensaje en el broker
-        }
+            try {
+                // Envía un mensaje a la cola
+                val queue = "queue"
+                val message = "$url::$id"
+                rabbitTemplate.convertAndSend(queue, message)
+                println("Mensaje enviado: $message")
+            } catch (e: Exception) {
+                // Maneja cualquier error que ocurra durante la escritura de un mensaje
+            }
     }
 }
 class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
