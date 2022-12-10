@@ -27,7 +27,7 @@ interface UrlShortenerController {
      *
      * **Note**: Delivery of use cases [RedirectUseCase] and [LogClickUseCase].
      */
-    fun redirectTo(id: String, request: HttpServletRequest): ResponseEntity<Void>
+    fun redirectTo(id: String, request: HttpServletRequest): ResponseEntity<ClickOut>
 
     /**
      * Creates a short url from details provided in [data].
@@ -47,7 +47,7 @@ interface UrlShortenerController {
  */
 data class ShortUrlDataIn(
     val url: String,
-    val wantQR: String,
+    val wantQR: String? = null,
     val sponsor: String? = null,
 )
 
@@ -78,7 +78,7 @@ class UrlShortenerControllerImpl(
 ) : UrlShortenerController {
 
     @GetMapping("/{id:(?!api|index).*}")
-        override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
+        override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> =
         redirectUseCase.redirectTo(id).let {
             var userAgent: UserAgent? = null
             val redirection = redirectUseCase.redirectTo(id)
@@ -112,8 +112,16 @@ class UrlShortenerControllerImpl(
                     throw UrlNotSafe(id)
                 }
             }
+
             h.location = URI.create(it.target)
-            ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
+
+
+            val clikOut = ClickOut(
+                    hash = id,
+                    browser = userAgent?.browser?.toString(),
+                    platform = userAgent?.os?.toString()
+                )
+            ResponseEntity<ClickOut>(clikOut,h, HttpStatus.valueOf(it.mode))
         }
 
     @PostMapping("/api/link", consumes = [APPLICATION_FORM_URLENCODED_VALUE])
@@ -123,7 +131,7 @@ class UrlShortenerControllerImpl(
             wantQR = data.wantQR == "Yes",
             data = ShortUrlProperties(
                 ip = request.remoteAddr,
-                sponsor = data.sponsor
+                sponsor = data.sponsor,
             )
         ).let {
             val h = HttpHeaders()
