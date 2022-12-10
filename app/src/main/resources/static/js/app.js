@@ -6,7 +6,7 @@ $(document).ready(
                 $.ajax({
                     type: "POST",
                     url: "/api/link",
-                    data: $(this).serialize(),
+                    data: $(this).serialize() + "&" + $("#wantQR").serialize(),
                     success: function (msg, status, request) {
                         $("#result").html(
                             "<div class='alert alert-success lead'><a target='_blank' href='"
