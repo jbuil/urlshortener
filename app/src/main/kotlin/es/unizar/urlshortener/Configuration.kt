@@ -1,7 +1,6 @@
 package es.unizar.urlshortener
 
 import GenerateQRUseCaseImpl
-import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
 import es.unizar.urlshortener.core.usecases.LogClickUseCaseImpl
 import es.unizar.urlshortener.core.usecases.RedirectUseCaseImpl
@@ -11,6 +10,7 @@ import es.unizar.urlshortener.infrastructure.repositories.ClickRepositoryService
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlEntityRepository
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlRepositoryServiceImpl
 import es.unizar.urlshortener.core.usecases.InfoHTTPHeaderCaseImpl
+import org.springframework.amqp.rabbit.core.RabbitTemplate
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
@@ -24,16 +24,25 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class ApplicationConfiguration(
     @Autowired val shortUrlEntityRepository: ShortUrlEntityRepository,
-    @Autowired val clickEntityRepository: ClickEntityRepository
+    @Autowired val clickEntityRepository: ClickEntityRepository,
+    @Autowired val rabbitTemplate: RabbitTemplate
+
+
 ) {
     @Bean
     fun clickRepositoryService() = ClickRepositoryServiceImpl(clickEntityRepository)
+
+
+
 
     @Bean
     fun shortUrlRepositoryService() = ShortUrlRepositoryServiceImpl(shortUrlEntityRepository)
 
     @Bean
     fun validatorService() = ValidatorServiceImpl()
+
+    @Bean
+    fun rabbitMQService() = RabbitMQServiceImpl(rabbitTemplate,shortUrlRepositoryService())
 
     @Bean
     fun hashService() = HashServiceImpl()
@@ -47,8 +56,7 @@ class ApplicationConfiguration(
     @Bean
     fun logClickUseCase() = LogClickUseCaseImpl(clickRepositoryService())
 
-    @Bean
-    fun rabbitMQService() = RabbitMQServiceImpl(shortUrlRepositoryService())
+
 
     @Bean
     fun googleSafeBrowsing() = GoogleSafeBrowsingServiceImpl()
@@ -56,7 +64,7 @@ class ApplicationConfiguration(
 
     @Bean
     fun createShortUrlUseCase() =
-        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService(), rabbitMQService(),googleSafeBrowsing())
+        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService(), rabbitMQService())
 
     @Bean
     fun generateQRUseCase() = GenerateQRUseCaseImpl(shortUrlRepositoryService(), QRService())

@@ -22,6 +22,7 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
     configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     repositories {
         mavenCentral()
@@ -37,14 +38,19 @@ subprojects {
     }
     dependencies {
         "implementation"("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+        "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
+
     }
 }
 
 project(":core") {
     dependencies {
-        "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
-        "implementation"("org.springframework:spring-core:5.3.22")
-        "implementation" ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
+       "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
+       "implementation"("org.springframework:spring-core:5.3.22")
+        "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
+
+
+
     }
 }
 
@@ -55,6 +61,8 @@ project(":repositories") {
     dependencies {
         "implementation"(project(":core"))
         "implementation"("org.springframework.boot:spring-boot-starter-data-jpa")
+        "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
+
     }
     tasks.getByName<BootJar>("bootJar") {
         enabled = false
@@ -73,13 +81,11 @@ project(":delivery") {
         "implementation"("commons-validator:commons-validator:$commonsValidatorVersion")
         "implementation"("com.google.guava:guava:$guavaVersion")
         "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
-        "implementation" ("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
+        "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
         "implementation"("ru.chermenin:kotlin-user-agents:0.2.2")
-        "implementation"("com.rabbitmq:amqp-client:latest.release")
         "implementation"("com.google.api-client:google-api-client:latest.release")
         "implementation" ("com.google.apis:google-api-services-safebrowsing:v4-rev20190923-1.30.3")
-        "implementation"("org.springframework.amqp:spring-rabbit:3.0.0")
-
+        "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
     }
@@ -96,15 +102,21 @@ project(":app") {
         "implementation"(project(":core"))
         "implementation"(project(":delivery"))
         "implementation"(project(":repositories"))
-        "implementation"("org.springframework.boot:spring-boot-starter")
         "implementation"( "org.webjars:bootstrap:$bootstrapVersion")
         "implementation"("org.webjars:jquery:$jqueryVersion")
         "runtimeOnly"("org.hsqldb:hsqldb")
+        "implementation"("org.springframework.boot:spring-boot-starter")
+        "implementation"("org.webjars:bootstrap:$bootstrapVersion")
+        "implementation"("org.webjars:jquery:$jqueryVersion")
+        "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
+        "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
+
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.springframework.boot:spring-boot-starter-web")
         "testImplementation"("org.springframework.boot:spring-boot-starter-jdbc")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
         "testImplementation"("com.fasterxml.jackson.module:jackson-module-kotlin")
+
         "testImplementation"("org.apache.httpcomponents:httpclient")
     }
 }
