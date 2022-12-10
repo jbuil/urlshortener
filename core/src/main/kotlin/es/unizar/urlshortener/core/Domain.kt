@@ -28,6 +28,7 @@ data class Click(
 data class ShortUrl(
     val hash: String,
     val redirection: Redirection,
+    val qr: String?,
     val created: OffsetDateTime = OffsetDateTime.now(),
     val properties: ShortUrlProperties = ShortUrlProperties()
 )

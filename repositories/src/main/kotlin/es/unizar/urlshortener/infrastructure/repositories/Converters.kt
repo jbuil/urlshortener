@@ -40,6 +40,7 @@ fun ShortUrlEntity.toDomain() = ShortUrl(
         target = target,
         mode = mode
     ),
+    qr = qr,
     created = created,
     properties = ShortUrlProperties(
         sponsor = sponsor,
@@ -57,6 +58,7 @@ fun ShortUrl.toEntity() = ShortUrlEntity(
     hash = hash,
     target = redirection.target,
     mode = redirection.mode,
+    qr = qr,
     created = created,
     owner = properties.owner,
     sponsor = properties.sponsor,

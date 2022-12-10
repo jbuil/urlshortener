@@ -36,5 +36,6 @@ class ShortUrlEntity(
     val mode: Int,
     var safe: Boolean?,
     val ip: String?,
-    val country: String?
+    val country: String?,
+    val qr: String?
 )

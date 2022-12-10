@@ -9,13 +9,11 @@ import org.springframework.hateoas.server.mvc.*
 import org.springframework.http.*
 import org.springframework.http.MediaType.*
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.multipart.MultipartFile
-import org.springframework.web.servlet.mvc.support.RedirectAttributes
-import ru.chermenin.ua.UserAgent
+import org.springframework.web.multipart.*
+import org.springframework.web.servlet.mvc.support.*
+import ru.chermenin.ua.*
 import java.net.*
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-import java.util.*
+import java.time.*
 import javax.servlet.http.*
 
 
@@ -122,6 +120,7 @@ class UrlShortenerControllerImpl(
     override suspend fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> =
         createShortUrlUseCase.create(
             url = data.url,
+            wantQR = data.wantQR == "Yes",
             data = ShortUrlProperties(
                 ip = request.remoteAddr,
                 sponsor = data.sponsor
@@ -130,10 +129,9 @@ class UrlShortenerControllerImpl(
             val h = HttpHeaders()
             val url = linkTo<UrlShortenerControllerImpl> { redirectTo(it.hash, request) }.toUri()
             h.location = url
-            val qr = if (data.wantQR == ("Yes")) assignQR(url.path) else null
             val response = ShortUrlDataOut(
                 url = url,
-                qr = qr
+                qr = it.qr?.let { it1 -> URI.create(it1) }
             )
             ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
         }
@@ -145,15 +143,6 @@ class UrlShortenerControllerImpl(
             h.set(CONTENT_TYPE, IMAGE_PNG.toString())
             ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)
         }
-
-    fun assignQR(path: String): URI = URI.create(baseURI + path + qrEndpoint)
-
-    companion object {
-        const val baseURI = "http://localhost:8080"
-        const val qrEndpoint  = "/qr"
-        const val uploadFileEndpoint = "/upload"
-    }
-
 
     override  fun uploadFilePage(@RequestParam("file") file: MultipartFile, attribute : RedirectAttributes, request: HttpServletRequest) : ResponseEntity<String> =
         fileController.uploadFile(file, attribute).let {

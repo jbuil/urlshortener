@@ -9,7 +9,7 @@ import es.unizar.urlshortener.core.*
  * **Note**: This is an example of functionality.
  */
 interface CreateShortUrlUseCase {
-    suspend fun create(url: String, data: ShortUrlProperties): ShortUrl
+    suspend fun create(url: String, wantQR: Boolean, data: ShortUrlProperties): ShortUrl
 }
 
 /**
@@ -21,15 +21,16 @@ class CreateShortUrlUseCaseImpl(
     private val hashService: HashService,
     private val rabbitMQService: RabbitMQService
 ) : CreateShortUrlUseCase {
-    override suspend fun create(url: String, data: ShortUrlProperties): ShortUrl {
-        // Code to shorten the URL goes here
+    override suspend fun create(url: String, wantQR: Boolean, data: ShortUrlProperties): ShortUrl {
         if (!validatorService.isValid(url)) {
             throw InvalidUrlException(url)
         }
         val id: String = hashService.hasUrl(url)
+        val qr: String? = if (wantQR) assignQR(id) else null
         val su = ShortUrl(
             hash = id,
             redirection = Redirection(target = url),
+            qr = qr,
             properties = ShortUrlProperties(
                 ip = data.ip,
                 sponsor = data.sponsor
@@ -41,5 +42,11 @@ class CreateShortUrlUseCaseImpl(
         // Return the shortened URL
         return su
     }
-}
 
+    companion object {
+        const val baseURI = "http://localhost:8080/"
+        const val qrEndpoint  = "/qr"
+    }
+
+    private fun assignQR(hash: String): String = baseURI + hash + qrEndpoint
+}
