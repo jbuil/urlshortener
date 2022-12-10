@@ -47,7 +47,7 @@ interface UrlShortenerController {
  */
 data class ShortUrlDataIn(
     val url: String,
-    val wantQR: String? = null,
+    val wantQR: String,
     val sponsor: String? = null,
 )
 
