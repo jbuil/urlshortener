@@ -1,11 +1,18 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import com.google.common.hash.Hashing
+import com.rabbitmq.client.AMQP
 import es.unizar.urlshortener.core.*
 import io.github.g0dkar.qrcode.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import net.minidev.json.JSONObject
 import org.apache.commons.validator.routines.*
+import org.springframework.amqp.core.Message
+import org.springframework.amqp.core.MessageListener
+import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
+import org.springframework.amqp.rabbit.listener.api.ChannelAwareMessageListener
 import org.springframework.core.io.*
 import org.springframework.util.MimeTypeUtils.*
 import java.io.*
@@ -51,27 +58,28 @@ class RabbitMQServiceImpl(
     private val shortUrlRepository: ShortUrlRepositoryService,
 ) : RabbitMQService {
 
+    @RabbitListener(queues = arrayOf("queue"))
     override fun read(message: String) {
-        // Procesa el mensaje
-        val (url, hash) = message.split("::")
-        println("Leyendo para la cola: $url $hash")
-        // Duerme para comprobar la cola de broker
-        // sleep(10000)
-        var message: String? = rabbitTemplate.receiveAndConvert("miCola", String::class.java) as String?
+        val (url,hash) = message.split("::")
         shortUrlRepository.updateSafe(hash, GoogleSafeBrowsingServiceImpl().isSafe(url))
+
+        // Agrega el listener al RabbitTemplate
+        //rabbitTemplate.addListener(listener)
     }
     override fun write(url: String, id: String) {
-            try {
-                // Envía un mensaje a la cola
-                val queue = "queue"
-                val message = "$url::$id"
-                rabbitTemplate.convertAndSend(queue, message)
-                println("Mensaje enviado: $message")
-            } catch (e: Exception) {
-                // Maneja cualquier error que ocurra durante la escritura de un mensaje
-            }
+        try {
+            // Envía un mensaje a la cola
+            val queue = "queue"
+            val message = "$url::$id"
+            rabbitTemplate.convertAndSend(queue, message)
+            println("Mensaje enviado: $message")
+        } catch (e: Exception) {
+            // Maneja cualquier error que ocurra durante la escritura de un mensaje
+        }
     }
 }
+
+
 class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
 
         override fun isSafe(url: String): Boolean {
