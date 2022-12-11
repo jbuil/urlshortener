@@ -90,12 +90,14 @@ class UrlShortenerControllerTest {
 
     @Test
     suspend fun `creates returns a basic redirect if it can compute a hash`() {
+        val qr = CreateShortUrlUseCaseImpl.baseURI + "f684a3c4" + CreateShortUrlUseCaseImpl.qrEndpoint
         given(
             createShortUrlUseCase.create(
                 url = "http://example.com/",
+                wantQR = true,
                 data = ShortUrlProperties(ip = "127.0.0.1")
             )
-        ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/")))
+        ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/"), qr))
 
         mockMvc.perform(
             post("/api/link")
@@ -106,6 +108,7 @@ class UrlShortenerControllerTest {
             .andExpect(status().isCreated)
             .andExpect(redirectedUrl("http://localhost/f684a3c4"))
             .andExpect(jsonPath("$.url").value("http://localhost/f684a3c4"))
+            .andExpect(jsonPath("$.qr").value(qr))
     }
 
     @Test
@@ -113,6 +116,7 @@ class UrlShortenerControllerTest {
         given(
             createShortUrlUseCase.create(
                 url = "ftp://example.com/",
+                wantQR = true,
                 data = ShortUrlProperties(ip = "127.0.0.1")
             )
         ).willAnswer { throw InvalidUrlException("ftp://example.com/") }
@@ -124,6 +128,7 @@ class UrlShortenerControllerTest {
         )
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.statusCode").value(400))
+            .andExpect(jsonPath("$.qr").value(null))
     }
 
     @Test
@@ -156,23 +161,26 @@ class UrlShortenerControllerTest {
         given(
             createShortUrlUseCase.create(
                 url = "http://google.com",
+                wantQR = false,
                 data = ShortUrlProperties(ip = "127.0.0.1")
             )
-        ).willReturn(ShortUrl("f684a3c4", Redirection("http://google.com")))
+        ).willReturn(ShortUrl("f684a3c4", Redirection("http://google.com"), null))
 
         given(
             createShortUrlUseCase.create(
                 url = "http://facebook.com",
+                wantQR = false,
                 data = ShortUrlProperties(ip = "127.0.0.1")
             )
-        ).willReturn(ShortUrl("3c3a4f68", Redirection("http://facebook.com")))
+        ).willReturn(ShortUrl("3c3a4f68", Redirection("http://facebook.com"), null))
 
         given(
             createShortUrlUseCase.create(
                 url = "http://twitter.com",
+                wantQR = false,
                 data = ShortUrlProperties(ip = "127.0.0.1")
             )
-        ).willReturn(ShortUrl("9861d2c7", Redirection("http://twitter.com")))
+        ).willReturn(ShortUrl("9861d2c7", Redirection("http://twitter.com"), null))
 
         // Creamos una lista de URLs que queremos acortar
         val urls = listOf(
@@ -211,7 +219,6 @@ class UrlShortenerControllerTest {
             }
         }
 
-
         // Comprobamos si se han acortado todas las URLs
         assertEquals(urls.size, results.size)
     }
@@ -231,7 +238,7 @@ class UrlShortenerControllerTest {
 
         // Set up the mock short URL repository to return a sample URL
         val url = "http://example.com"
-        val shortUrl = ShortUrl("123456", Redirection(url))
+        val shortUrl = ShortUrl("123456", Redirection(url), null)
         given(shortUrlRepository.findByKey("123456")).willReturn(shortUrl)
         val channel = connection.createChannel()
         val queue = "queue"
@@ -297,7 +304,7 @@ class UrlShortenerControllerTest {
             hashService = HashServiceImpl(),
             rabbitMQService = rabbitMQService)
         // Llamamos al caso de uso con una URL válida
-        createShortUrlUseCase.create("http://google.com", ShortUrlProperties(ip = "127.0.0.1"))
+        createShortUrlUseCase.create("http://google.com", false, ShortUrlProperties(ip = "127.0.0.1"))
 
         // Verificamos que se llama al servicio de RabbitMQ con la URL y el ID correctos
         verify(rabbitMQService).write("http://google.com", "58f3ae21")
@@ -326,6 +333,7 @@ class UrlShortenerControllerTest {
         given(
             createShortUrlUseCase.create(
                 url = testUrl,
+                wantQR = false,
                 data = ShortUrlProperties(ip = "127.0.0.1")
             )
         ).willAnswer { throw UrlNotSafe(testUrl) }
@@ -336,9 +344,10 @@ class UrlShortenerControllerTest {
         given(
             createShortUrlUseCase.create(
                 url = "http://google.com",
+                wantQR = false,
                 data = ShortUrlProperties(ip = "127.0.0.1")
             )
-        ).willReturn(ShortUrl("f684a3c4", Redirection("http://google.com")))
+        ).willReturn(ShortUrl("f684a3c4", Redirection("http://google.com"), null))
 
         // Act
         mockMvc.perform(get("/{id}", "key"))
@@ -352,6 +361,7 @@ class UrlShortenerControllerTest {
         given(
             createShortUrlUseCase.create(
                 url = "http://example.com/",
+                wantQR = false,
                 data = ShortUrlProperties(ip = "127.0.0.1")
             )
         ).willAnswer { throw InvalidUrlException("ftp://example.com/") }
