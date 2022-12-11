@@ -89,48 +89,50 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    suspend fun `creates returns a basic redirect if it can compute a hash`() {
-        val qr = CreateShortUrlUseCaseImpl.baseURI + "f684a3c4" + CreateShortUrlUseCaseImpl.qrEndpoint
-        given(
-            createShortUrlUseCase.create(
-                url = "http://example.com/",
-                wantQR = true,
-                data = ShortUrlProperties(ip = "127.0.0.1")
-            )
-        ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/"), qr))
+    fun `creates returns a basic redirect if it can compute a hash`() {
+        runBlocking { val qr = CreateShortUrlUseCaseImpl.baseURI + "f684a3c4" + CreateShortUrlUseCaseImpl.qrEndpoint
+            given(
+                createShortUrlUseCase.create(
+                    url = "http://example.com/",
+                    wantQR = true,
+                    data = ShortUrlProperties(ip = "127.0.0.1")
+                )
+            ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/"), qr))
 
-        mockMvc.perform(
-            post("/api/link")
-                .param("url", "http://example.com/")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-        )
-            .andDo(print())
-            .andExpect(status().isCreated)
-            .andExpect(redirectedUrl("http://localhost/f684a3c4"))
-            .andExpect(jsonPath("$.url").value("http://localhost/f684a3c4"))
-            .andExpect(jsonPath("$.qr").value(qr))
+            mockMvc.perform(
+                post("/api/link")
+                    .param("url", "http://example.com/")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+            )
+                .andDo(print())
+                .andExpect(status().isCreated)
+                .andExpect(redirectedUrl("http://localhost/f684a3c4"))
+                .andExpect(jsonPath("$.url").value("http://localhost/f684a3c4"))
+                .andExpect(jsonPath("$.qr").value(qr))
+        }
     }
 
     @Test
-    suspend fun `creates returns bad request if it can compute a hash`() {
-        given(
-            createShortUrlUseCase.create(
-                url = "ftp://example.com/",
-                wantQR = true,
-                data = ShortUrlProperties(ip = "127.0.0.1")
+    fun `creates returns bad request if it can compute a hash`() {
+        runBlocking {
+            given(
+                createShortUrlUseCase.create(
+                    url = "ftp://example.com/",
+                    wantQR = true,
+                    data = ShortUrlProperties(ip = "127.0.0.1")
+                )
+            ).willAnswer { throw InvalidUrlException("ftp://example.com/") }
+
+            mockMvc.perform(
+                post("/api/link")
+                    .param("url", "ftp://example.com/")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             )
-        ).willAnswer { throw InvalidUrlException("ftp://example.com/") }
-
-        mockMvc.perform(
-            post("/api/link")
-                .param("url", "ftp://example.com/")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-        )
-            .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.statusCode").value(400))
-            .andExpect(jsonPath("$.qr").value(null))
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.statusCode").value(400))
+                .andExpect(jsonPath("$.qr").value(null))
+        }
     }
-
     @Test
     fun `generateQR returns a qr code when the key exists`() {
         given(generateQRUseCase.generateQR("key")).willReturn(ByteArrayResource("test".toByteArray()))
@@ -154,73 +156,75 @@ class UrlShortenerControllerTest {
 
     @OptIn(DelicateCoroutinesApi::class)
     @Test
-    suspend fun testUrlShortenerIsAsync() {
+    fun testUrlShortenerIsAsync() {
 
-        // Configuramos el mock para que devuelva una URL acortada
-        // cada vez que se le llame con una URL válida
-        given(
-            createShortUrlUseCase.create(
-                url = "http://google.com",
-                wantQR = false,
-                data = ShortUrlProperties(ip = "127.0.0.1")
+        runBlocking { // Configuramos el mock para que devuelva una URL acortada
+            // cada vez que se le llame con una URL válida
+            given(
+                createShortUrlUseCase.create(
+                    url = "http://google.com",
+                    wantQR = false,
+                    data = ShortUrlProperties(ip = "127.0.0.1")
+                )
+            ).willReturn(ShortUrl("f684a3c4", Redirection("http://google.com"), null))
+
+            given(
+                createShortUrlUseCase.create(
+                    url = "http://facebook.com",
+                    wantQR = false,
+                    data = ShortUrlProperties(ip = "127.0.0.1")
+                )
+            ).willReturn(ShortUrl("3c3a4f68", Redirection("http://facebook.com"), null))
+
+            given(
+                createShortUrlUseCase.create(
+                    url = "http://twitter.com",
+                    wantQR = false,
+                    data = ShortUrlProperties(ip = "127.0.0.1")
+                )
+            ).willReturn(ShortUrl("9861d2c7", Redirection("http://twitter.com"), null))
+
+            // Creamos una lista de URLs que queremos acortar
+            val urls = listOf(
+                "http://google.com",
+                "http://facebook.com",
+                "http://twitter.com"
             )
-        ).willReturn(ShortUrl("f684a3c4", Redirection("http://google.com"), null))
 
-        given(
-            createShortUrlUseCase.create(
-                url = "http://facebook.com",
-                wantQR = false,
-                data = ShortUrlProperties(ip = "127.0.0.1")
-            )
-        ).willReturn(ShortUrl("3c3a4f68", Redirection("http://facebook.com"), null))
+            // Creamos una lista para almacenar las tareas
+            // de acortamiento
+            val tasks = mutableListOf<Job>()
 
-        given(
-            createShortUrlUseCase.create(
-                url = "http://twitter.com",
-                wantQR = false,
-                data = ShortUrlProperties(ip = "127.0.0.1")
-            )
-        ).willReturn(ShortUrl("9861d2c7", Redirection("http://twitter.com"), null))
+            // Creamos una lista para almacenar los resultados
+            // de cada tarea de acortamiento
+            val results = mutableListOf<MvcResult>()
 
-        // Creamos una lista de URLs que queremos acortar
-        val urls = listOf(
-            "http://google.com",
-            "http://facebook.com",
-            "http://twitter.com"
-        )
-
-        // Creamos una lista para almacenar las tareas
-        // de acortamiento
-        val tasks = mutableListOf<Job>()
-
-        // Creamos una lista para almacenar los resultados
-        // de cada tarea de acortamiento
-        val results = mutableListOf<MvcResult>()
-
-        // Iniciamos una tarea para acortar cada una de las URLs
-        urls.forEach { url ->
-            tasks.add(GlobalScope.launch {
-                // Acortamos la URL y añadimos el resultado a la lista
-                results.add(
-                    mockMvc.perform(
-                        post("/api/link")
-                            .param("url", url)
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    ).andReturn()
+            // Iniciamos una tarea para acortar cada una de las URLs
+            urls.forEach { url ->
+                tasks.add(GlobalScope.launch {
+                    // Acortamos la URL y añadimos el resultado a la lista
+                    results.add(
+                        mockMvc.perform(
+                            post("/api/link")
+                                .param("url", url)
+                                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        ).andReturn()
+                    )
+                }
                 )
             }
-            )
-        }
 
-    // Esperamos a que todas las tareas finalicen
-        runBlocking {
-            tasks.forEach {
-                it.join()
+            // Esperamos a que todas las tareas finalicen
+            runBlocking {
+                tasks.forEach {
+                    it.join()
+                }
             }
+
+            // Comprobamos si se han acortado todas las URLs
+            assertEquals(urls.size, results.size)
         }
 
-        // Comprobamos si se han acortado todas las URLs
-        assertEquals(urls.size, results.size)
     }
     fun testRead() {
         val shortUrlRepository = mock(ShortUrlRepositoryService::class.java)
@@ -293,22 +297,23 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    suspend fun testRabbitMQServiceIsUsed() {
+     fun testRabbitMQServiceIsUsed() {
+        runBlocking { val rabbitMQService = mock(RabbitMQService::class.java)
+
+            // Creamos una instancia del caso de uso que utiliza el mock del servicio de RabbitMQ
+            val createShortUrlUseCase = CreateShortUrlUseCaseImpl(
+                shortUrlRepository = mock(ShortUrlRepositoryService::class.java),
+                validatorService = ValidatorServiceImpl(),
+                hashService = HashServiceImpl(),
+                rabbitMQService = rabbitMQService)
+            // Llamamos al caso de uso con una URL válida
+            createShortUrlUseCase.create("http://google.com", false, ShortUrlProperties(ip = "127.0.0.1"))
+
+            // Verificamos que se llama al servicio de RabbitMQ con la URL y el ID correctos
+            verify(rabbitMQService).write("http://google.com", "58f3ae21")
+        } }
         // Creamos un mock del servicio de RabbitMQ
-        val rabbitMQService = mock(RabbitMQService::class.java)
 
-        // Creamos una instancia del caso de uso que utiliza el mock del servicio de RabbitMQ
-        val createShortUrlUseCase = CreateShortUrlUseCaseImpl(
-            shortUrlRepository = mock(ShortUrlRepositoryService::class.java),
-            validatorService = ValidatorServiceImpl(),
-            hashService = HashServiceImpl(),
-            rabbitMQService = rabbitMQService)
-        // Llamamos al caso de uso con una URL válida
-        createShortUrlUseCase.create("http://google.com", false, ShortUrlProperties(ip = "127.0.0.1"))
-
-        // Verificamos que se llama al servicio de RabbitMQ con la URL y el ID correctos
-        verify(rabbitMQService).write("http://google.com", "58f3ae21")
-    }
     @Test
     fun testGoogleSafeBrowsingService() {
         // URL de prueba que se considera segura
@@ -326,18 +331,19 @@ class UrlShortenerControllerTest {
         assertFalse(isNotSafe)
     }
     @Test
-    suspend fun testCreateShortUrlWithUnsafeUrl() {
-        // URL de prueba que se considera insegura
-        val testUrl = "https://www.zipl.in/construction/slider/up/"
+    fun testCreateShortUrlWithUnsafeUrl() {
+        runBlocking { // URL de prueba que se considera insegura
+            val testUrl = "https://www.zipl.in/construction/slider/up/"
 
-        given(
-            createShortUrlUseCase.create(
-                url = testUrl,
-                wantQR = false,
-                data = ShortUrlProperties(ip = "127.0.0.1")
-            )
-        ).willAnswer { throw UrlNotSafe(testUrl) }
-    }
+            given(
+                createShortUrlUseCase.create(
+                    url = testUrl,
+                    wantQR = false,
+                    data = ShortUrlProperties(ip = "127.0.0.1")
+                )
+            ).willAnswer { throw UrlNotSafe(testUrl) }
+        } }
+
 
     suspend fun `when redirectTo is called and short url is not verified then return SERVICE_UNAVAILABLE`() {
         // Arrange
