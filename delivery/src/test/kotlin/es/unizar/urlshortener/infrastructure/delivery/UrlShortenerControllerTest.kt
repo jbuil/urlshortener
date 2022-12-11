@@ -98,10 +98,10 @@ class UrlShortenerControllerTest {
                     data = ShortUrlProperties(ip = "127.0.0.1")
                 )
             ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/"), qr))
-
             mockMvc.perform(
                 post("/api/link")
                     .param("url", "http://example.com/")
+                    .param("wantQR","Yes")
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             )
                 .andDo(print())
@@ -126,6 +126,7 @@ class UrlShortenerControllerTest {
             mockMvc.perform(
                 post("/api/link")
                     .param("url", "ftp://example.com/")
+                    .param("wantQR","Yes")
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             )
                 .andExpect(status().isBadRequest)
@@ -207,6 +208,7 @@ class UrlShortenerControllerTest {
                         mockMvc.perform(
                             post("/api/link")
                                 .param("url", url)
+                                .param("wantQR","No")
                                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                         ).andReturn()
                     )
