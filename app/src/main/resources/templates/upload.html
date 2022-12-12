@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>Upload your file.</title>
 </head>
 <body>
-<h1>Upload your file here</h1>
-<input type="file" name="file">
-<input type="submit" value="Enviar">
+    <h1>Upload your file here</h1>
+    <form action="upload" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file"/><br><br>
+        <input type="submit" value="Cargar"/>
+    </form>
 </body>
 </html>

@@ -21,6 +21,11 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.*
+import org.springframework.web.multipart.MultipartFile
+import org.springframework.stereotype.Service
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 
 /**
@@ -114,6 +119,38 @@ class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
         }
 }
 
+interface UploadFileService{
+    fun saveFile(file: MultipartFile)
+}
+@Service
+class UploadFileServiceImpl: UploadFileService {
+    val uploadFolder: String = ".//src//main//resources//files//"
+
+    override fun saveFile(file: MultipartFile){
+        if (!file.isEmpty) {
+            val bytes = file.bytes
+            val path: Path = Paths.get(uploadFolder + file.originalFilename)
+            val pathReturn: Path = Paths.get(uploadFolder+"Return.txt")
+            Files.write(path, bytes)
+
+            val returnFile: File = File(uploadFolder+"Return.txt")
+            if (!returnFile.exists()) {
+                returnFile.createNewFile();
+            }
+            var fw = FileWriter(returnFile.absoluteFile, true)
+            var bw = BufferedWriter(fw)
+            val lines = Files.readAllLines(path)
+            var i = 0
+            while ( i < lines.size) {
+                bw.write(lines[i])
+                bw.newLine()
+                i += 1
+            }
+            bw.close()
+            fw.close()
+        }
+    }
+}
 
 
 

@@ -1,12 +1,16 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
-
+import es.unizar.urlshortener.core.*
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import java.lang.StringBuilder
 import java.util.*
@@ -16,55 +20,38 @@ import java.io.BufferedWriter
 import java.io.FileReader
 import java.io.FileWriter
 import java.io.IOException
+import javax.servlet.http.HttpServletRequest
 
 interface FileController {
   // fun index(): String
     fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String
     fun status(): String
+    fun upload(request: HttpServletRequest) : String
 }
 
 @Controller
 public class FileControllerImpl (
-        val createShortUrlUseCase : CreateShortUrlUseCase
+        val uploadFileService: UploadFileService
 ) : FileController {
 
 
-    fun index(): String{
-        return "upload_URLs_File";
+    @GetMapping("/upload")
+    override  fun upload( request: HttpServletRequest) : String {
+        return "upload"
     }
-    @GetMapping("/update")
-        fun update(): String {
-            return "upload"
-        }
 
-    @GetMapping("/updatee")
-    override fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String {
+    @PostMapping("/upload")
+    override fun uploadFile( @RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String {
         if (file.isEmpty) {
             attributes.addFlashAttribute("message", "Please, select a file")
             return "redirect:status"
         }
         /** TODO: Comprobar si el contenido del arhivo es valido */
 
-        val builder = StringBuilder()
-        builder.append("delivery")
-        builder.append(File.separator)
-        builder.append(file.getOriginalFilename())
 
         /** tratamiento del archivo */
         try {
-            val reader = BufferedReader(file.originalFilename?.let { FileReader(it) })
-            val writer = BufferedWriter(FileWriter("SHORTED.txt"))
-            var line: String?
-            line = reader.readLine()
-
-            while (line != null) {
-                //val content = String
-                /** TODO: convert line into a shortURL */
-                writer.write(line)
-                writer.newLine()
-                line = readLine()
-            }
-
+            uploadFileService.saveFile(file)
             attributes.addFlashAttribute("message", "File loaded successfully")
 
         } catch (e: IOException) {

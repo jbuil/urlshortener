@@ -88,6 +88,7 @@ project(":delivery") {
         "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
+        "implementation"("org.springframework.boot:spring-boot-starter-thymeleaf")
     }
     tasks.getByName<BootJar>("bootJar") {
         enabled = false
