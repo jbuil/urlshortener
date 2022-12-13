@@ -38,7 +38,6 @@ interface UrlShortenerController {
 
     fun generateQR(hash: String, request: HttpServletRequest) : ResponseEntity<ByteArrayResource>
 
-    fun uploadFilePage(file: MultipartFile,attribute : RedirectAttributes , request: HttpServletRequest) : ResponseEntity<String>
 
 }
 
@@ -150,12 +149,5 @@ class UrlShortenerControllerImpl(
             val h = HttpHeaders()
             h.set(CONTENT_TYPE, IMAGE_PNG.toString())
             ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)
-        }
-
-    override  fun uploadFilePage(@RequestParam("file") file: MultipartFile, attribute : RedirectAttributes, request: HttpServletRequest) : ResponseEntity<String> =
-        fileController.uploadFile(file, attribute).let {
-            val h = HttpHeaders()
-            h.set(CONTENT_TYPE, IMAGE_PNG.toString())
-            ResponseEntity<String>(it, h, HttpStatus.OK)
         }
 }

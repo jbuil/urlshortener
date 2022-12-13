@@ -1,32 +1,23 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import es.unizar.urlshortener.core.*
+import org.springframework.core.io.FileSystemResource
 import org.springframework.stereotype.Controller
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
-import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PostMapping
-import java.lang.StringBuilder
-import java.util.*
 import java.io.File
-import java.io.BufferedReader
-import java.io.BufferedWriter
-import java.io.FileReader
-import java.io.FileWriter
 import java.io.IOException
+import java.util.*
 import javax.servlet.http.HttpServletRequest
+
 
 interface FileController {
   // fun index(): String
-    fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String
+  suspend fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String
     fun status(): String
     fun upload(request: HttpServletRequest) : String
+    fun download():String
 }
 
 @Controller
@@ -41,7 +32,7 @@ public class FileControllerImpl (
     }
 
     @PostMapping("/upload")
-    override fun uploadFile( @RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String {
+    override suspend fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): String {
         if (file.isEmpty) {
             attributes.addFlashAttribute("message", "Please, select a file")
             return "redirect:status"
@@ -51,18 +42,24 @@ public class FileControllerImpl (
 
         /** tratamiento del archivo */
         try {
-            uploadFileService.saveFile(file)
+            val result = uploadFileService.saveFile(file)
             attributes.addFlashAttribute("message", "File loaded successfully")
+            attributes.addFlashAttribute("result", result)
 
         } catch (e: IOException) {
             attributes.addFlashAttribute("message", "File failed to load")
             return "redirect:status"
         }
-        return "redirect:/status"
+        return "redirect:/download"
     }
 
     @GetMapping("/status")
     override fun status(): String {
         return "status"
+    }
+
+    @GetMapping("/download")
+    override fun download(): String {
+        return "download"
     }
 }

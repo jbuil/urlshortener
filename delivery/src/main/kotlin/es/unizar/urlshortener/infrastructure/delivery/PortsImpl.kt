@@ -1,18 +1,15 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import com.google.common.hash.Hashing
-import com.rabbitmq.client.AMQP
 import es.unizar.urlshortener.core.*
+import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
+import es.unizar.urlshortener.infrastructure.delivery.ValidatorServiceImpl.Companion.urlValidator
 import io.github.g0dkar.qrcode.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.DelicateCoroutinesApi
 import net.minidev.json.JSONObject
 import org.apache.commons.validator.routines.*
-import org.springframework.amqp.core.Message
-import org.springframework.amqp.core.MessageListener
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
-import org.springframework.amqp.rabbit.listener.api.ChannelAwareMessageListener
 import org.springframework.core.io.*
 import org.springframework.util.MimeTypeUtils.*
 import java.io.*
@@ -120,34 +117,37 @@ class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
 }
 
 interface UploadFileService{
-    fun saveFile(file: MultipartFile)
+    abstract val createShortUrlUseCase: CreateShortUrlUseCase
+
+    suspend fun saveFile(file: MultipartFile): List<String>
 }
 @Service
-class UploadFileServiceImpl: UploadFileService {
-    val uploadFolder: String = ".//src//main//resources//files//"
+class UploadFileServiceImpl(override val createShortUrlUseCase: CreateShortUrlUseCase) : UploadFileService {
+    val uploadFolder: String = "..//files//"
 
-    override fun saveFile(file: MultipartFile){
+    override suspend fun saveFile(file: MultipartFile): List<String>{
         if (!file.isEmpty) {
             val bytes = file.bytes
             val path: Path = Paths.get(uploadFolder + file.originalFilename)
-            val pathReturn: Path = Paths.get(uploadFolder+"Return.txt")
             Files.write(path, bytes)
-
-            val returnFile: File = File(uploadFolder+"Return.txt")
-            if (!returnFile.exists()) {
-                returnFile.createNewFile();
-            }
-            var fw = FileWriter(returnFile.absoluteFile, true)
-            var bw = BufferedWriter(fw)
-            val lines = Files.readAllLines(path)
+            var list = Files.readAllLines(path)
             var i = 0
-            while ( i < lines.size) {
-                bw.write(lines[i])
-                bw.newLine()
+            while (i < list.size) {
+                if (urlValidator.isValid(list[i])) {
+                    var su = createShortUrlUseCase.create(
+                        url = list[i],
+                        wantQR = false,
+                        data = ShortUrlProperties(ip = "127.0.0.1")
+                    )
+                    list[i] = ("http://localhost:8080/" + su.hash)
+                } else {
+                    list[i] = "invalid_URL"
+                }
                 i += 1
             }
-            bw.close()
-            fw.close()
+            return list
+        } else {
+            return emptyList()
         }
     }
 }
