@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.mockito.Mockito.mock
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.http.HttpStatus
+import kotlinx.coroutines.test.runTest
 
 @WebMvcTest
 @ContextConfiguration(
@@ -89,8 +90,8 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    fun `creates returns a basic redirect if it can compute a hash`() {
-        runBlocking { val qr = CreateShortUrlUseCaseImpl.baseURI + "f684a3c4" + CreateShortUrlUseCaseImpl.qrEndpoint
+    fun `creates returns a basic redirect if it can compute a hash`() = runTest {
+         val qr = CreateShortUrlUseCaseImpl.baseURI + "f684a3c4" + CreateShortUrlUseCaseImpl.qrEndpoint
             given(
                 createShortUrlUseCase.create(
                     url = "http://example.com/",
@@ -101,7 +102,7 @@ class UrlShortenerControllerTest {
             mockMvc.perform(
                 post("/api/link")
                     .param("url", "http://example.com/")
-                    .param("wantQR","Yes")
+                    .param("wantQR","No")
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             )
                 .andDo(print())
@@ -110,7 +111,6 @@ class UrlShortenerControllerTest {
                 .andExpect(jsonPath("$.url").value("http://localhost/f684a3c4"))
                 .andExpect(jsonPath("$.qr").value(qr))
         }
-    }
 
     @Test
     fun `creates returns bad request if it can compute a hash`() {
