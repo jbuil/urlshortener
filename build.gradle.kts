@@ -78,6 +78,7 @@ project(":delivery") {
         "implementation"("org.springframework.boot:spring-boot-starter-web")
         "implementation"("org.springframework.boot:spring-boot-starter-hateoas")
         "implementation"("com.fasterxml.jackson.module:jackson-module-kotlin")
+        "implementation"("com.opencsv:opencsv:4.6")
         "implementation"("commons-validator:commons-validator:$commonsValidatorVersion")
         "implementation"("com.google.guava:guava:$guavaVersion")
         "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
@@ -89,6 +90,7 @@ project(":delivery") {
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
         "implementation"("org.springframework.boot:spring-boot-starter-thymeleaf")
+
     }
     tasks.getByName<BootJar>("bootJar") {
         enabled = false

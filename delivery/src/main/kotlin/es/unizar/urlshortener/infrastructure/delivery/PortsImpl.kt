@@ -1,29 +1,30 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import com.google.common.hash.Hashing
+import com.opencsv.*
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
 import es.unizar.urlshortener.infrastructure.delivery.ValidatorServiceImpl.Companion.urlValidator
 import io.github.g0dkar.qrcode.*
-import kotlinx.coroutines.DelicateCoroutinesApi
 import net.minidev.json.JSONObject
 import org.apache.commons.validator.routines.*
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.core.io.*
+import org.springframework.stereotype.Service
 import org.springframework.util.MimeTypeUtils.*
+import org.springframework.web.multipart.MultipartFile
 import java.io.*
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.*
-import org.springframework.web.multipart.MultipartFile
-import org.springframework.stereotype.Service
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.io.FileReader
+
+
 /**
  * Implementation of the port [ValidatorService].
  */
@@ -130,12 +131,12 @@ class UploadFileServiceImpl(override val createShortUrlUseCase: CreateShortUrlUs
             val path: Path = Paths.get(uploadFolder + file.originalFilename)
             Files.write(path, bytes)
             var list: MutableList<String> = ArrayList<String>()
-            var fr = FileReader(uploadFolder + file.originalFilename)
-            var br = BufferedReader(fr);
-            var line = br.readLine()
-            while (line != null) {
-                var fields = line.split(",")
-                for (i in fields){
+            var fr = Files.newBufferedReader(path, StandardCharsets.UTF_8)
+            var reader = CSVReader(fr)
+            var line = reader.readNext()
+
+            while ( line != null) {
+                for (i in line) {
                     if (urlValidator.isValid(i)) {
                         var su = createShortUrlUseCase.create(
                             url = i,
@@ -147,7 +148,12 @@ class UploadFileServiceImpl(override val createShortUrlUseCase: CreateShortUrlUs
                         list.add("invalid_URL")
                     }
                 }
+                line = reader.readNext()
             }
+
+            fr.close()
+            reader.close()
+
             return list
         } else {
             return emptyList()
