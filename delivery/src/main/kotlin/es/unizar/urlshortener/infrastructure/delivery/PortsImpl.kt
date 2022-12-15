@@ -23,8 +23,7 @@ import org.springframework.stereotype.Service
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-
-
+import java.io.FileReader
 /**
  * Implementation of the port [ValidatorService].
  */
@@ -130,20 +129,24 @@ class UploadFileServiceImpl(override val createShortUrlUseCase: CreateShortUrlUs
             val bytes = file.bytes
             val path: Path = Paths.get(uploadFolder + file.originalFilename)
             Files.write(path, bytes)
-            var list = Files.readAllLines(path)
-            var i = 0
-            while (i < list.size) {
-                if (urlValidator.isValid(list[i])) {
-                    var su = createShortUrlUseCase.create(
-                        url = list[i],
-                        wantQR = false,
-                        data = ShortUrlProperties(ip = "127.0.0.1")
-                    )
-                    list[i] = ("http://localhost:8080/" + su.hash)
-                } else {
-                    list[i] = "invalid_URL"
+            var list: MutableList<String> = ArrayList<String>()
+            var fr = FileReader(uploadFolder + file.originalFilename)
+            var br = BufferedReader(fr);
+            var line = br.readLine()
+            while (line != null) {
+                var fields = line.split(",")
+                for (i in fields){
+                    if (urlValidator.isValid(i)) {
+                        var su = createShortUrlUseCase.create(
+                            url = i,
+                            wantQR = false,
+                            data = ShortUrlProperties(ip = "127.0.0.1")
+                        )
+                        list.add("http://localhost:8080/" + su.hash)
+                    } else {
+                        list.add("invalid_URL")
+                    }
                 }
-                i += 1
             }
             return list
         } else {
