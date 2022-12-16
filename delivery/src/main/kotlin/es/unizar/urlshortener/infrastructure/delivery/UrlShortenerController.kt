@@ -4,6 +4,11 @@ import GenerateQRUseCase
 import com.google.common.net.HttpHeaders.*
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
+import io.swagger.annotations.ApiResponse
+import io.swagger.annotations.ApiResponses
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.core.io.*
 import org.springframework.hateoas.server.mvc.*
 import org.springframework.http.*
@@ -12,8 +17,10 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.*
 import org.springframework.web.servlet.mvc.support.*
 import ru.chermenin.ua.*
+import java.io.File
 import java.net.*
 import java.time.*
+import javax.lang.model.element.Element
 import javax.servlet.http.*
 
 
@@ -76,7 +83,6 @@ class UrlShortenerControllerImpl(
     val fileController: FileController
 
 ) : UrlShortenerController {
-
     @GetMapping("/{id:(?!api|index).*}")
         override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> =
         redirectUseCase.redirectTo(id).let {
@@ -123,7 +129,6 @@ class UrlShortenerControllerImpl(
                 )
             ResponseEntity<ClickOut>(clikOut,h, HttpStatus.valueOf(it.mode))
         }
-
     @PostMapping("/api/link", consumes = [APPLICATION_FORM_URLENCODED_VALUE])
     override suspend fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> =
         createShortUrlUseCase.create(
@@ -158,4 +163,10 @@ class UrlShortenerControllerImpl(
             h.set(CONTENT_TYPE, IMAGE_PNG.toString())
             ResponseEntity<String>(it, h, HttpStatus.OK)
         }
+    @GetMapping("/api-docs")
+    fun getApiDoc(): ResponseEntity<Any> {
+        val file = File("/Users/pedroaibar/7cuatri/IG/urlshortener/delivery/src/main/kotlin/es/unizar/urlshortener/infrastructure/delivery/archivo.json")
+        val json = file.readText()
+        return ResponseEntity.ok(json)
+    }
 }

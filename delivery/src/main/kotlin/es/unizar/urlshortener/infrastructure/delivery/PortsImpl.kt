@@ -58,25 +58,23 @@ class RabbitMQServiceImpl(
     private val shortUrlRepository: ShortUrlRepositoryService,
 ) : RabbitMQService {
 
-    @RabbitListener(queues = arrayOf("queue"))
+    @RabbitListener(queues = arrayOf("safe"))
     override fun read(message: String) {
         val (url,hash) = message.split("::")
+        print(url + hash)
         shortUrlRepository.updateSafe(hash, GoogleSafeBrowsingServiceImpl().isSafe(url))
 
         // Agrega el listener al RabbitTemplate
         //rabbitTemplate.addListener(listener)
     }
     override fun write(url: String, id: String) {
-        try {
-            // Envía un mensaje a la cola
-            val queue = "queue"
-            val message = "$url::$id"
-            rabbitTemplate.convertAndSend(queue, message)
-            println("Mensaje enviado: $message")
-        } catch (e: Exception) {
-            // Maneja cualquier error que ocurra durante la escritura de un mensaje
-        }
+        // Envía un mensaje a la cola
+        val queue = "safe"
+        val message = "$url::$id"
+        rabbitTemplate.convertAndSend("exchange", "safe", message)
+        println("Mensaje enviado: $message")
     }
+
 }
 
 

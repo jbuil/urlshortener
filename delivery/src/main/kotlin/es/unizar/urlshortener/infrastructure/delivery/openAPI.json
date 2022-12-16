@@ -1,0 +1,104 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "UrlShortenerController",
+    "description": "Especificación del controlador del acortador de URL",
+    "version": "1.0.0"
+  },
+  "paths": {
+  "/{id:(?!api|index).*}": {
+  "operationId": "redirectTo",
+  "description": "Redirects to the target URL of the given short URL",
+  "parameters": [
+    {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+        "type": "string"
+      }
+    }
+  ],
+  "responses": {
+    "302": {
+      "description": "Redirection to the target URL",
+      "headers": {
+        "Location": {
+          "description": "The target URL",
+          "schema": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "503": {
+      "description": "The URL has not been verified yet",
+      "headers": {
+        "Retry-After": {
+          "description": "The time when the URL is expected to be verified",
+          "schema": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "403": {
+      "description": "The URL is not safe"
+    }
+  }
+},
+    "/api/link": {
+        "method": "POST",
+        "operationId": "shortener",
+        "description": "Creates a short URL for the given original URL",
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                },
+                "wantQR": {
+                  "type": "string"
+                },
+                "sponsor": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Short URL created",
+            "headers": {
+              "Location": {
+                "description": "The short URL",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                },
+                "qr": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+}

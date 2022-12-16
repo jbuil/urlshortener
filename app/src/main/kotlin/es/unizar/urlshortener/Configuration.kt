@@ -10,9 +10,13 @@ import es.unizar.urlshortener.infrastructure.repositories.ClickEntityRepository
 import es.unizar.urlshortener.infrastructure.repositories.ClickRepositoryServiceImpl
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlEntityRepository
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlRepositoryServiceImpl
+import org.springframework.amqp.core.Binding
+import org.springframework.amqp.core.BindingBuilder
 import org.springframework.amqp.core.Queue
+import org.springframework.amqp.core.TopicExchange
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -35,7 +39,7 @@ class ApplicationConfiguration(
 
     @Bean
     fun myQueue1(): Queue? {
-        return Queue("queue", false)
+        return Queue("safe", false)
     }
 
     @Bean
@@ -43,6 +47,19 @@ class ApplicationConfiguration(
         return Queue("csv", false)
     }
 
+    @Bean
+    fun exchange(): TopicExchange? {
+        return TopicExchange("exchange")
+    }
+
+    @Bean
+    fun bindingSafeBrowsing(@Qualifier("myQueue1") queue: Queue?, exchange: TopicExchange?): Binding? {
+        return BindingBuilder.bind(queue).to(exchange).with("safe")
+    }
+    @Bean
+    fun bindingCSV(@Qualifier("myQueue2") queue: Queue?, exchange: TopicExchange?): Binding? {
+        return BindingBuilder.bind(queue).to(exchange).with("csv")
+    }
 
     @Bean
     fun shortUrlRepositoryService() = ShortUrlRepositoryServiceImpl(shortUrlEntityRepository)
