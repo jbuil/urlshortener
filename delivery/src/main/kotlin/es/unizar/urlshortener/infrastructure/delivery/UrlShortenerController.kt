@@ -4,11 +4,6 @@ import GenerateQRUseCase
 import com.google.common.net.HttpHeaders.*
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
-import io.swagger.annotations.ApiResponse
-import io.swagger.annotations.ApiResponses
-import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.media.Content
-import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.core.io.*
 import org.springframework.hateoas.server.mvc.*
 import org.springframework.http.*
@@ -154,13 +149,6 @@ class UrlShortenerControllerImpl(
             val h = HttpHeaders()
             h.set(CONTENT_TYPE, IMAGE_PNG.toString())
             ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)
-        }
-
-    override  fun uploadFilePage(@RequestParam("file") file: MultipartFile, attribute : RedirectAttributes, request: HttpServletRequest) : ResponseEntity<String> =
-        fileController.uploadFile(file, attribute).let {
-            val h = HttpHeaders()
-            h.set(CONTENT_TYPE, IMAGE_PNG.toString())
-            ResponseEntity<String>(it, h, HttpStatus.OK)
         }
     @GetMapping("/api-docs")
     fun getApiDoc(): ResponseEntity<Any> {

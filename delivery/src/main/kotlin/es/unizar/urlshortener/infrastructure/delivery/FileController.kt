@@ -20,7 +20,7 @@ interface FileController {
     fun download():String
 }
 
-@Controller
+@RestController
 public class FileControllerImpl (
         val uploadFileService: UploadFileService
 ) : FileController {
