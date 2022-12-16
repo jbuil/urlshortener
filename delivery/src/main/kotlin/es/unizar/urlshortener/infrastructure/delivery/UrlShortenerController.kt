@@ -45,7 +45,6 @@ interface UrlShortenerController {
 
     fun generateQR(hash: String, request: HttpServletRequest) : ResponseEntity<ByteArrayResource>
 
-    fun uploadFilePage(file: MultipartFile,attribute : RedirectAttributes , request: HttpServletRequest) : ResponseEntity<String>
 
 }
 
@@ -169,4 +168,5 @@ class UrlShortenerControllerImpl(
         val json = file.readText()
         return ResponseEntity.ok(json)
     }
+
 }

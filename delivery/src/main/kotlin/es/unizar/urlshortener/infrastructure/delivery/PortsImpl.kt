@@ -1,26 +1,28 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import com.google.common.hash.Hashing
-import com.rabbitmq.client.AMQP
+import com.opencsv.*
 import es.unizar.urlshortener.core.*
+import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
+import es.unizar.urlshortener.infrastructure.delivery.ValidatorServiceImpl.Companion.urlValidator
 import io.github.g0dkar.qrcode.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import net.minidev.json.JSONObject
 import org.apache.commons.validator.routines.*
-import org.springframework.amqp.core.Message
-import org.springframework.amqp.core.MessageListener
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.amqp.rabbit.core.RabbitTemplate
-import org.springframework.amqp.rabbit.listener.api.ChannelAwareMessageListener
 import org.springframework.core.io.*
+import org.springframework.stereotype.Service
 import org.springframework.util.MimeTypeUtils.*
+import org.springframework.web.multipart.MultipartFile
 import java.io.*
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.*
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 
 /**
@@ -112,6 +114,50 @@ class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
         }
 }
 
+interface UploadFileService{
+    abstract val createShortUrlUseCase: CreateShortUrlUseCase
+
+    suspend fun saveFile(file: MultipartFile): List<String>
+}
+@Service
+class UploadFileServiceImpl(override val createShortUrlUseCase: CreateShortUrlUseCase) : UploadFileService {
+    val uploadFolder: String = "..//files//"
+
+    override suspend fun saveFile(file: MultipartFile): List<String>{
+        if (!file.isEmpty) {
+            val bytes = file.bytes
+            val path: Path = Paths.get(uploadFolder + file.originalFilename)
+            Files.write(path, bytes)
+            var list: MutableList<String> = ArrayList<String>()
+            var fr = Files.newBufferedReader(path, StandardCharsets.UTF_8)
+            var reader = CSVReader(fr)
+            var line = reader.readNext()
+
+            while ( line != null) {
+                for (i in line) {
+                    if (urlValidator.isValid(i)) {
+                        var su = createShortUrlUseCase.create(
+                            url = i,
+                            wantQR = false,
+                            data = ShortUrlProperties(ip = "127.0.0.1")
+                        )
+                        list.add("http://localhost:8080/" + su.hash)
+                    } else {
+                        list.add("invalid_URL")
+                    }
+                }
+                line = reader.readNext()
+            }
+
+            fr.close()
+            reader.close()
+
+            return list
+        } else {
+            return emptyList()
+        }
+    }
+}
 
 
 
