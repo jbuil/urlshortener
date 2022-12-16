@@ -87,9 +87,13 @@ project(":delivery") {
         "implementation"("com.google.api-client:google-api-client:latest.release")
         "implementation" ("com.google.apis:google-api-services-safebrowsing:v4-rev20190923-1.30.3")
         "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
+        "implementation" ("io.springfox:springfox-swagger2:2.9.2")
+        "implementation"("org.springdoc:springdoc-openapi-ui:1.6.4")
+        "implementation" ("io.springfox:springfox-swagger-ui:2.9.2")
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
         "implementation"("org.springframework.boot:spring-boot-starter-thymeleaf")
+        "testImplementation"( "org.jetbrains.kotlinx:kotlinx-coroutines-test:latest.release")
 
     }
     tasks.getByName<BootJar>("bootJar") {

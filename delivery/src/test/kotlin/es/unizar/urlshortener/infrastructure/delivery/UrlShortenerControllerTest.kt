@@ -1,6 +1,7 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import GenerateQRUseCase
+import com.google.common.net.HttpHeaders.LOCATION
 import com.google.common.net.HttpHeaders.RETRY_AFTER
 import com.rabbitmq.client.AMQP
 import com.rabbitmq.client.ConnectionFactory
@@ -33,6 +34,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.mockito.Mockito.mock
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.http.HttpStatus
+import kotlinx.coroutines.test.runTest
 
 @WebMvcTest
 @ContextConfiguration(
@@ -89,8 +91,8 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    fun `creates returns a basic redirect if it can compute a hash`() {
-        runBlocking { val qr = CreateShortUrlUseCaseImpl.baseURI + "f684a3c4" + CreateShortUrlUseCaseImpl.qrEndpoint
+    fun `creates returns a basic redirect if it can compute a hash`() = runTest {
+         val qr = CreateShortUrlUseCaseImpl.baseURI + "f684a3c4" + CreateShortUrlUseCaseImpl.qrEndpoint
             given(
                 createShortUrlUseCase.create(
                     url = "http://example.com/",
@@ -101,7 +103,7 @@ class UrlShortenerControllerTest {
             mockMvc.perform(
                 post("/api/link")
                     .param("url", "http://example.com/")
-                    .param("wantQR","Yes")
+                    .param("wantQR","No")
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             )
                 .andDo(print())
@@ -110,7 +112,6 @@ class UrlShortenerControllerTest {
                 .andExpect(jsonPath("$.url").value("http://localhost/f684a3c4"))
                 .andExpect(jsonPath("$.qr").value(qr))
         }
-    }
 
     @Test
     fun `creates returns bad request if it can compute a hash`() {
@@ -345,9 +346,76 @@ class UrlShortenerControllerTest {
                 )
             ).willAnswer { throw UrlNotSafe(testUrl) }
         } }
+    @Test
+    fun `redirectTo returns a redirect when the key exists and the URL is safe`() {
+        given(redirectUseCase.redirectTo("key"))
+            .willReturn(Redirection("https://www.example.com"))
 
 
-    suspend fun `when redirectTo is called and short url is not verified then return SERVICE_UNAVAILABLE`() {
+        // Act and assert
+        mockMvc.perform(get("/{id}", "key"))
+            .andDo(print())
+            .andExpect(status().isTemporaryRedirect)
+            .andExpect(header().string(LOCATION, "https://www.example.com"))
+
+        verify(logClickUseCase).logClick(
+            "key",
+            ClickProperties(ip = "127.0.0.1", platform = null, browser = null, referrer = "https://www.example.com")
+        )
+    }
+    @Test
+    fun `redirectTo returns a forbidden when the key exists and the URL is not safe`() {
+        val shortUrl =
+        ShortUrl(
+            "key",
+            Redirection("https://www.example.com"),
+            null,
+            properties = (ShortUrlProperties(
+            safe = false)))
+
+        given(redirectUseCase.redirectTo("key"))
+            .willReturn(Redirection("https://www.example.com"))
+        given(shortUrlRepository.findByKey("key"))
+            .willReturn(shortUrl)
+
+        // Act and assert
+        mockMvc.perform(get("/{id}", "key"))
+            .andDo(print())
+            .andExpect(status().isForbidden)
+
+    }
+    @Test
+    fun `redirectTo returns a service unavailable when the key exists but the URL is not yet verified`() {
+        // Arrange
+        val shortUrl =
+            ShortUrl(
+                "key",
+                Redirection("https://www.example.com"),
+                null,
+                properties = (ShortUrlProperties(
+                    safe = null)))
+        given(redirectUseCase.redirectTo("key"))
+            .willReturn(Redirection("https://www.example.com"))
+        given(shortUrlRepository.findByKey("key"))
+            .willReturn(shortUrl)
+
+        // Act and assert
+        mockMvc.perform(get("/{id}", "key"))
+            .andDo(print())
+            .andExpect(status().isServiceUnavailable)
+            .andExpect(header().string(RETRY_AFTER, "10000"))
+    }
+
+
+
+
+
+
+
+
+
+
+        suspend fun `when redirectTo is called and short url is not verified then return SERVICE_UNAVAILABLE`() {
         // Arrange
         given(
             createShortUrlUseCase.create(
@@ -378,17 +446,7 @@ class UrlShortenerControllerTest {
             .andExpect(status().isForbidden)
             .andExpect(content().string("{\"statusCode\": 403, \"message\": \"La url es insegura\"}"))
     }
-    @Test
-    fun `should return a SERVICE UNAVAILABLE response when the target URL has not been verified`() {
-        val urlId = "123456"
-        val expectedResponse = ErrorMessage(HttpStatus.SERVICE_UNAVAILABLE.value(), "URI de destino no validada todavía")
 
-       // val response =  RedirectController(mockRedirectUseCase, mockLogClickUseCase, mockShortUrlRepository)
-
-
-      //  assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.statusCode)
-       // assertEquals(expectedResponse, response.body)
-    }
 
 
 

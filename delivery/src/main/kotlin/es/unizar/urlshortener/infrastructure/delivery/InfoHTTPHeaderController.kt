@@ -71,7 +71,6 @@ class InfoHTTPHeaderControllerImpl (
         return let
     }
     override fun getUserAgent(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> {
-        val userAgent = request.getHeader("user-agent") // Obtén el valor de la cabecera User-Agent
         // Busca el objeto ClickOut con el ID especificado
         val click = infoHTTPHeaderUseCase.getInfo(id)?.firstOrNull()
         val clickOut = click?.let {
