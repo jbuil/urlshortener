@@ -1,0 +1,235 @@
+# this is an example of the Uber API
+# as a demonstration of an API spec in YAML
+swagger: "2.0"
+info:
+  title: URL SHORTENER
+  description: A url shortener is a tool to reduce a long link and then share it.
+  version: "1.0.0"
+# the domain of the service
+host: localhost:8080
+# array of all schemes that your API supports
+schemes:
+  - http
+# will be prefixed to all paths
+basePath: /
+consumes:
+  - application/json
+  - application/x-www-form-urlencoded
+produces:
+  - application/json
+paths:
+  /api/link:
+    post:
+      operationId: postlink
+      summary: create a shortened URL
+      description: Allows a user to create a shortened URL
+      parameters:
+        - name: request
+          in: body
+          description: The uri to short
+          schema:
+            type: object
+            required:
+              - url
+            properties:
+              url:
+                type: string
+                example: https://www.google.com
+              wantQR:
+                type: boolean
+                example: true
+
+      tags:
+        - Uniform Resource Identifier
+      responses:
+        "201":
+          description: Application is successfully processed
+          headers:
+            Location:
+              type: string
+              description: Absolute path to the created trimmed URI
+          schema:
+            type: object
+            properties:
+              url:
+                type: string
+                description: "URL to short begining with [\"http://www.\"]"
+                example: https://www.google.com
+              wantQR:
+                type: boolean
+                description: "Whether a QR has to be created or not"
+                example: true
+        "400":
+          description: URI cannot be created
+          schema:
+            type: object
+            $ref: '#/definitions/Error400'
+  /api/link/{id}:
+    get:
+      operationId: getlink
+      summary: Information about the URI
+      description: Returns relevant information about the shortened URI identified by the parameter id
+      parameters:
+        - name: id
+          in: path
+          description: Identifier of the URI
+          required: true
+          type: string
+      tags:
+        - Uniform Resource Identifier
+      responses:
+        "200":
+          description: Trimmed URI exists and it has been confirmed that it can be used for redirects
+          schema:
+            type: object
+            $ref: '#/definitions/shorturl'
+        "400":
+          description: Trimmed URI exists and it has not yet been confirmed whether or not the redirection can be made
+          headers:
+            Retry-After:
+              type: number
+              description: Time in second to wait until next request
+          schema:
+            type: object
+            $ref: '#/definitions/Error400-not-validated'
+        "403":
+          description: Trimmed URI exists and cannot be used for redirections
+          schema:
+            type: object
+            $ref: '#/definitions/Error403'
+  /{id}:
+    get:
+      operationId: redirect
+      summary: Get redirect
+      description: Performs redirection to a URI identified by the parameter id
+      parameters:
+        - name: id
+          in: path
+          description: Identifier of the URI
+          required: true
+          type: string
+      tags:
+        - Uniform Resource Identifier
+      responses:
+        "307":
+          description: Trimmed URI exists and it has been confirmed that the redirection can be performed
+          headers:
+            Location:
+              type: string
+              description: Absolute path to the created trimmed URI
+        "400":
+          description: Trimmed URI exists and it has not yet been confirmed whether or not the redirection can be made
+          headers:
+            Retry-After:
+              type: string
+              description: time in seconds until next request
+          schema:
+            type: object
+            $ref: '#/definitions/Error400-not-validated'
+        "403":
+          description: Trimmed URI exists and cannot be used for redirections
+          schema:
+            type: object
+            $ref: '#/definitions/Error403'
+  /{id}/qr:
+    get:
+      operationId: qr
+      summary: Get QR
+      description: Returns a QR code containing the absolute path of the GET /{id} request.
+      parameters:
+        - name: id
+          in: path
+          description: Identifier of the URI
+          required: true
+          type: string
+      tags:
+        - Uniform Resource Identifier
+      responses:
+        "200":
+          description: Trimmed URI exists and it has been confirmed that the redirection can be performed
+          headers:
+            Content-Type:
+              type: string
+              enum:
+                - image/png
+              description: The format used by the QR code is PNG
+        "400":
+          description: Trimmed URI exists and it has not yet been confirmed whether or not the redirection can be made
+          headers:
+            Retry-After:
+              type: string
+              description: Time in seconds until next request
+          schema:
+            type: object
+            $ref: '#/definitions/Error400-not-validated'
+        "403":
+          description: Trimmed URI exists and cannot be used for redirections
+          schema:
+            type: object
+            $ref: '#/definitions/Error403'
+definitions:
+  shorturl:
+    properties:
+      url:
+        type: string
+        description: "Shortened URL"
+        example: "http://localhost:8080/4170157c"
+      target:
+        type: string
+        description: "Target URL"
+        example: "http://www.google.com"
+      wantQR:
+        type: string
+        description: "Link to the QR endpoint"
+        example: "http://localhost:8080/4170157c/qr"
+        x-nullable: true
+      safe:
+        type: boolean
+        description: "Whether the uri is safe or not"
+        example: true
+  Error:
+    properties:
+      message:
+        type: string
+  Error400:
+    properties:
+      statusCode:
+        type: integer
+        description: "Protocol status code"
+        example: "400"
+      message:
+        type: string
+        description: "Description of the error"
+        example: "[https://ww.google.com] does not follow a supported schema"
+      timestamp:
+        type: string
+        description: "Timestamp of the request"
+        example: "2022-12-19T23:58:57.70665+01:00"
+  Error400-not-validated:
+    properties:
+      statusCode:
+        type: integer
+        description: "Protocol status code"
+        example: "400"
+      message:
+        type: string
+        description: "Description of the error"
+        example: "URI has not been validated yet"
+      timestamp:
+        type: string
+        description: "Timestamp of the request"
+        example: "2022-12-19T23:58:57.70665+01:00"
+  Error403:
+    properties:
+      statusCode:
+        type: integer
+        description: "Protocol status code"
+        example: "403"
+      message:
+        type: string
+        description: "Description of the error"
+        example: "URI is not safe"
+      timestamp:
+        type: string
+        description: "Timestamp of the request"
+        example: "2022-12-19T23:58:57.70665+01:00"
