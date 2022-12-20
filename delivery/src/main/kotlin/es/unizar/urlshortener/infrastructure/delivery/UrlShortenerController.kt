@@ -4,18 +4,15 @@ import GenerateQRUseCase
 import com.google.common.net.HttpHeaders.*
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
-import org.springframework.core.io.*
+import org.springframework.cache.*
+import org.springframework.cache.annotation.*
 import org.springframework.hateoas.server.mvc.*
 import org.springframework.http.*
 import org.springframework.http.MediaType.*
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.multipart.*
-import org.springframework.web.servlet.mvc.support.*
 import ru.chermenin.ua.*
-import java.io.File
 import java.net.*
 import java.time.*
-import javax.lang.model.element.Element
 import javax.servlet.http.*
 
 
@@ -38,7 +35,7 @@ interface UrlShortenerController {
      */
     suspend fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
 
-    fun generateQR(hash: String, request: HttpServletRequest) : ResponseEntity<ByteArrayResource>
+    fun getQR(hash: String, request: HttpServletRequest) : ResponseEntity<ByteArray>
 
 
 }
@@ -74,8 +71,8 @@ class UrlShortenerControllerImpl(
     val createShortUrlUseCase: CreateShortUrlUseCase,
     val generateQRUseCase: GenerateQRUseCase,
     val shortUrlRepository: ShortUrlRepositoryService,
-    val fileController: FileController
-
+    val fileController: FileController,
+    val cacheManager: CacheManager
 ) : UrlShortenerController {
     @GetMapping("/{id:(?!api|docs|index|opeenApi.yaml).*}")
         override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> =
@@ -140,21 +137,31 @@ class UrlShortenerControllerImpl(
                 url = url,
                 qr = it.qr?.let { it1 -> URI.create(it1) }
             )
+            if(data.wantQR == "Yes") {
+                val qrCache = cacheManager.getCache("qr-codes")
+                val qrKey = it.hash
+                qrCache?.put(qrKey, generateQRUseCase.generateQR(it.hash))
+            }
             ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
         }
 
+    @Cacheable("qr-codes")
     @GetMapping("/{hash}/qr")
-    override fun generateQR(@PathVariable hash: String, request: HttpServletRequest) : ResponseEntity<ByteArrayResource> =
-        generateQRUseCase.generateQR(hash).let {
+    override fun getQR(@PathVariable hash: String, request: HttpServletRequest): ResponseEntity<ByteArray> {
+        /*generateQRUseCase.generateQR(hash).let {
             val h = HttpHeaders()
             h.set(CONTENT_TYPE, IMAGE_PNG.toString())
-            ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)
+            ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)*/
+        // Obtiene el código QR de la cache
+        val qrCache = cacheManager.getCache("qr-codes")
+        if(qrCache == null) {
+            println("Nulo melon")
         }
-    @GetMapping("/api-docs")
-    fun getApiDoc(): ResponseEntity<Any> {
-        val file = File("/Users/pedroaibar/7cuatri/IG/urlshortener/delivery/src/main/kotlin/es/unizar/urlshortener/infrastructure/delivery/archivo.json")
-        val json = file.readText()
-        return ResponseEntity.ok(json)
-    }
+        val qrBytes = qrCache?.get(hash, ByteArray::class.java)
 
+        // Devuelve la imagen como una respuesta HTTP
+        val headers = HttpHeaders()
+        headers.contentType = IMAGE_PNG
+        return ResponseEntity<ByteArray>(qrBytes, headers, HttpStatus.OK)
+    }
 }

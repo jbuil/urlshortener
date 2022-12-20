@@ -48,9 +48,6 @@ project(":core") {
        "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
        "implementation"("org.springframework:spring-core:5.3.22")
         "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
-
-
-
     }
 }
 
@@ -94,7 +91,8 @@ project(":delivery") {
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
         "implementation"("org.springframework.boot:spring-boot-starter-thymeleaf")
         "testImplementation"( "org.jetbrains.kotlinx:kotlinx-coroutines-test:latest.release")
-
+        "implementation"("org.springframework.boot:spring-boot-starter-cache")
+        "implementation"("com.google.zxing:core:3.4.0")
     }
     tasks.getByName<BootJar>("bootJar") {
         enabled = false
