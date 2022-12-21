@@ -35,6 +35,11 @@ import org.mockito.Mockito.mock
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.http.HttpStatus
 import kotlinx.coroutines.test.runTest
+import org.springframework.mock.web.MockMultipartFile
+import org.springframework.web.multipart.MultipartFile
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 @WebMvcTest
 @ContextConfiguration(
@@ -64,6 +69,9 @@ class UrlShortenerControllerTest {
 
     @MockBean
     private lateinit var fileController: FileController
+
+    @MockBean
+    private lateinit var uploadFileService: UploadFileService
 
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
@@ -143,6 +151,19 @@ class UrlShortenerControllerTest {
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.IMAGE_PNG))
             .andExpect(content().bytes("test".toByteArray()))
+    }
+
+    @Test
+    fun `generate csv file returns CREATE status when its not empty`() {
+        val path: Path = Paths.get("files/test.csv")
+
+        val content = Files.readAllBytes(path)
+        val file : MultipartFile = MockMultipartFile("test.csv", "test.csv", "text/plain", content)
+        given(uploadFileService.saveFile(file)).willReturn("test,invalid_URL".toByteArray())
+
+        mockMvc.perform(get("/api/bulk"))
+            .andExpect(status().isCreated)
+            .andExpect(content().contentType(MediaType("test","csv")))
     }
 
     @Test
