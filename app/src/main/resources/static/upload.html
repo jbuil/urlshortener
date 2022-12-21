@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Upload your file.</title>
+    <style>
+        /* Añadir algunos estilos básicos */
+        body {
+            font-family: sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        input[type="file"] {
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        button[type="submit"] {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+        }
+        button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+<!-- Contenedor para centrar el formulario -->
+<div class="container">
+    <!-- Formulario de subida de archivos -->
+    <form id="upload-form" action="/link/bulk" method="POST" enctype="multipart/form-data">
+        <!-- Campo de tipo file para seleccionar el archivo -->
+        <input type="file" name="file" />
+        <!-- Botón de submit para enviar la solicitud -->
+        <button type="submit">Cargar</button>
+    </form>
+</div>
+<script>
+    // Manejador de eventos para el formulario de subida de archivos
+    document.getElementById('upload-form').addEventListener('submit', event => {
+        event.preventDefault();
+
+        // Recoger el archivo seleccionado
+        const file = document.querySelector('input[type="file"]').files[0];
+
+        // Crear un objeto FormData
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Enviar la solicitud POST al endpoint
+        fetch('/api/bulk', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Procesar la respuesta del servidor
+            })
+            .catch(error => {
+                // Manejar el error
+            });
+    });
+</script>
+</body>
+</html>
+
+

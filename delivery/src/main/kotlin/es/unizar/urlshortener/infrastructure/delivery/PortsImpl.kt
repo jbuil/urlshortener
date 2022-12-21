@@ -153,7 +153,7 @@ class UploadFileServiceImpl(override val createShortUrlUseCase: CreateShortUrlUs
     override suspend fun saveFile(file: MultipartFile): List<String>{
         if (!file.isEmpty) {
             val bytes = file.bytes
-            val path: Path = Paths.get("/Users/pedroaibar/7cuatri/IG/urlshortener/files" + file.originalFilename)
+            val path: Path = Paths.get(uploadFolder + file.originalFilename)
             Files.write(path, bytes)
             var list: MutableList<String> = ArrayList<String>()
             var fr = Files.newBufferedReader(path, StandardCharsets.UTF_8)

@@ -74,7 +74,7 @@ class UrlShortenerControllerImpl(
     val fileController: FileController,
     val cacheManager: CacheManager
 ) : UrlShortenerController {
-    @GetMapping("/{id:(?!api|docs|index|opeenApi.yaml).*}")
+    @GetMapping("/{id:(?!api|docs|index|opeenApi.yaml|upload).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> =
         redirectUseCase.redirectTo(id).let {
             var userAgent: UserAgent? = null

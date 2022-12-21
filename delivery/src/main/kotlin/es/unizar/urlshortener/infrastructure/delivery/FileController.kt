@@ -4,6 +4,7 @@ import es.unizar.urlshortener.core.*
 import org.springframework.core.io.FileSystemResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
@@ -36,14 +37,16 @@ public class FileControllerImpl (
         return "upload"
     }
 
-    @PostMapping("/upload")
+    @PostMapping("/api/bulk")
     override suspend fun uploadFile(@RequestParam("file") file: MultipartFile,
                                     attributes: RedirectAttributes ): ResponseEntity<List<String>> =
         uploadFileService.saveFile(
             file
         ).let {
+            println("entra en /api/bulk")
             var h = HttpHeaders()
             h.location = URI.create(it.get(0))
+            h.contentType = MediaType("text/csv")
             ResponseEntity<List<String>>(it, h, HttpStatus.CREATED)
         }
 
