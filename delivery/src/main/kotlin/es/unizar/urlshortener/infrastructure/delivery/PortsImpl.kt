@@ -150,23 +150,21 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
                             private val shortUrlRepository: ShortUrlRepositoryService) : UploadFileService {
     val uploadFolder: String = "..//files//"
 
-    override  fun saveFile(file: MultipartFile): ByteArray {
+    override fun saveFile(file: MultipartFile): ByteArray {
         if (!file.isEmpty) {
-            val bytes = file.bytes
-            val path: Path = Paths.get("/Users/pedroaibar/7cuatri/IG/urlshortener/files" + file.originalFilename)
-            Files.write(path, bytes)
-            var list: MutableList<String> = ArrayList<String>()
-            var fr = Files.newBufferedReader(path, StandardCharsets.UTF_8)
-            var reader = CSVReader(fr)
+            val inputStream = file.inputStream
+            val reader = BufferedReader(InputStreamReader(inputStream))
+
             val csv = StringWriter()
             val writer = CSVWriter(csv)
-            var line = reader.readNext()
 
-            while ( line != null) {
-                for (i in line) {
-                    if (urlValidator.isValid(i)) {
-                        var su = createShortUrlUseCase.create(
-                            url = i,
+            var line = reader.readLine()
+            while (line != null) {
+                val items = line.split(',')
+                for (item in items) {
+                    if (urlValidator.isValid(item)) {
+                        val su = createShortUrlUseCase.create(
+                            url = item,
                             wantQR = false,
                             data = ShortUrlProperties(ip = "127.0.0.1")
                         )
@@ -175,7 +173,7 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
                         writer.writeNext(arrayOf("invalid_URL"))
                     }
                 }
-                line = reader.readNext()
+                line = reader.readLine()
             }
 
             writer.close()
@@ -186,6 +184,7 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
             return ByteArray(0)
         }
     }
+
 }
 
 
