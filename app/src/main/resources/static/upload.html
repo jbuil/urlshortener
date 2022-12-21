@@ -55,15 +55,8 @@
         // Enviar la solicitud POST al endpoint
         fetch('/api/bulk', {
             method: 'POST',
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                // Procesar la respuesta del servidor
-            })
-            .catch(error => {
-                // Manejar el error
-            });
+            body: new FormData(document.getElementById('upload-form'))
+        });
     });
 </script>
 </body>
