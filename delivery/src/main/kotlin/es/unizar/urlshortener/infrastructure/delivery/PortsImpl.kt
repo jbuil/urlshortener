@@ -1,28 +1,25 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
-import com.google.common.hash.Hashing
+import com.google.common.hash.*
+import com.google.zxing.qrcode.*
 import com.opencsv.*
 import es.unizar.urlshortener.core.*
-import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
+import es.unizar.urlshortener.core.usecases.*
 import es.unizar.urlshortener.infrastructure.delivery.ValidatorServiceImpl.Companion.urlValidator
-import io.github.g0dkar.qrcode.*
-import net.minidev.json.JSONObject
+import net.minidev.json.*
 import org.apache.commons.validator.routines.*
-import org.springframework.amqp.rabbit.annotation.RabbitListener
-import org.springframework.amqp.rabbit.core.RabbitTemplate
-import org.springframework.core.io.*
-import org.springframework.stereotype.Service
-import org.springframework.util.MimeTypeUtils.*
-import org.springframework.web.multipart.MultipartFile
+import org.springframework.amqp.rabbit.annotation.*
+import org.springframework.amqp.rabbit.core.*
+import org.springframework.stereotype.*
+import org.springframework.web.multipart.*
+import java.awt.*
+import java.awt.image.*
 import java.io.*
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
+import java.net.*
+import java.net.http.*
 import java.nio.charset.*
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.*
+import javax.imageio.*
 
 
 /**
@@ -47,12 +44,36 @@ class HashServiceImpl : HashService {
  * Implementation of the port [QRService].
  */
 class QRServiceImpl : QRService {
-    override fun qrEncode(hash: String) : ByteArrayResource =
-        ByteArrayOutputStream().let{
-            QRCode(hash).render().writeImage(it)
-            val imageBytes = it.toByteArray()
-            ByteArrayResource(imageBytes, IMAGE_PNG_VALUE)
+    override fun qrEncode(hash: String) : ByteArray {
+        // Crea el código QR usando la función createQrImage()
+        val image = createQrImage(hash)
+
+        // Almacena la imagen en un array de bytes para poder almacenarla en la cache
+        val baos = ByteArrayOutputStream()
+        ImageIO.write(image, "png", baos)
+        return baos.toByteArray()
+    }
+    private fun createQrImage(qrData: String): BufferedImage {
+        val width = 300
+        val height = 300
+        // Crea el código QR usando la biblioteca qrcode
+        val qrWriter = QRCodeWriter()
+        val qrCode = qrWriter.encode(qrData, com.google.zxing.BarcodeFormat.QR_CODE, width, height)
+
+        // Crea una imagen en blanco para dibujar el código QR
+        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+
+        // Recorre el BitMatrix y dibuja los pixeles en la imagen
+        for (x in 0 until width) {
+            for (y in 0 until height) {
+                if (qrCode.get(x, y)) {
+                    image.setRGB(x, y, Color.WHITE.rgb)
+                }
+            }
         }
+
+        return image
+    }
 }
 
 class RabbitMQServiceImpl(
@@ -126,7 +147,7 @@ class UploadFileServiceImpl(override val createShortUrlUseCase: CreateShortUrlUs
     override suspend fun saveFile(file: MultipartFile): List<String>{
         if (!file.isEmpty) {
             val bytes = file.bytes
-            val path: Path = Paths.get(uploadFolder + file.originalFilename)
+            val path: Path = Paths.get("/Users/pedroaibar/7cuatri/IG/urlshortener/files" + file.originalFilename)
             Files.write(path, bytes)
             var list: MutableList<String> = ArrayList<String>()
             var fr = Files.newBufferedReader(path, StandardCharsets.UTF_8)

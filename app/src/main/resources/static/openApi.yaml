@@ -1,0 +1,76 @@
+swagger: "2.0"
+info:
+  title: URL SHORTENER
+  description: A url shortener is a tool to reduce a long link and then share it.
+  version: "1.0.0"
+host: localhost:8080
+schemes:
+  - http
+basePath: /
+consumes:
+  - application/json
+  - application/x-www-form-urlencoded
+produces:
+  - application/json
+paths:
+  /api/link:
+    post:
+      operationId: shortener
+      summary: create a shortened URL
+      description: Allows a user to create a shortened URL
+      parameters:
+        - name: data
+          in: query
+          description: The data containing the original URL
+          schema:
+            $ref: '#/definitions/ShortUrlDataIn'
+        - name: $completion
+          in: query
+          description: The continuation object
+          schema:
+            $ref: '#/definitions/ContinuationObject'
+      tags:
+        - url-shortener-controller-impl
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ShortUrlDataOut'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ErrorMessage'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/ErrorMessage'
+
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorMessage'
+
+  /{idPedro}:
+    get:
+      operationId: redirectTo
+      summary: redirect to the original URL
+      description: Allows users to redirect to the original URL when they access the shortened URL
+      parameters:
+        - name: id
+          in: body
+          description: The shortened URL
+          schema:
+            type: string
+      tags:
+        - url-shortener-controller-impl
+      responses:
+        "302":
+          description: Redirection to the target URL
+          headers:
+            Location:
+        "503":
+          description: The URL has not been verified yet
+          headers:
+            Retry-After:
+        "403":
+          description: The URL is not safe

@@ -1,17 +1,27 @@
 package es.unizar.urlshortener
 
 import com.fasterxml.jackson.databind.JsonNode
-import es.unizar.urlshortener.core.ShortUrl
-import es.unizar.urlshortener.infrastructure.delivery.ShortUrlDataOut
-import es.unizar.urlshortener.infrastructure.delivery.InfoHTTPHeaderOut
+import com.rabbitmq.client.AMQP
+import com.rabbitmq.client.ConnectionFactory
+import com.rabbitmq.client.DefaultConsumer
+import com.rabbitmq.client.Envelope
+import es.unizar.urlshortener.core.*
+import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
+import es.unizar.urlshortener.infrastructure.delivery.*
+import kotlinx.coroutines.runBlocking
 import net.minidev.json.JSONValue
 import net.minidev.json.JSONArray
 import net.minidev.json.JSONObject
 import org.apache.http.impl.client.HttpClientBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.BDDMockito
+import org.mockito.Mockito
+import org.mockito.kotlin.verify
+import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
@@ -214,6 +224,93 @@ class HttpRequestTest {
         assertThat(clickRow["platform"]).isEqualTo("Linux") // o el nombre de la plataforma que se esté utilizando
         assertThat(clickRow["created"]).isNotNull() // la fecha debe tener un valor
     }
+    fun testRead() {
+        val shortUrlRepository = Mockito.mock(ShortUrlRepositoryService::class.java)
+        val rabbitTemplate = RabbitTemplate()
+        val rabbitMQService = RabbitMQServiceImpl(rabbitTemplate,shortUrlRepository)
+        // Create a ConnectionFactory and set the connection parameters
+        val factory = ConnectionFactory()
+        factory.host = "localhost"
+        factory.username = "guest"
+        factory.password = "guest"
+
+        // Create a connection to the RabbitMQ server
+        val connection = factory.newConnection()
+
+
+        // Set up the mock short URL repository to return a sample URL
+        val url = "http://example.com"
+        val shortUrl = ShortUrl("123456", Redirection(url), null)
+        BDDMockito.given(shortUrlRepository.findByKey("123456")).willReturn(shortUrl)
+        val channel = connection.createChannel()
+        val queue = "queue"
+        channel.queuePurge(queue)
+        // Write a message to the queue
+        rabbitMQService.write(url, "123456")
+
+        // Read the message from the queue and verify the contents
+        val message = rabbitMQService.read("")
+        Assertions.assertEquals("$url::123456", message)
+    }
+    @Test
+    fun testWrite() {
+        val shortUrlRepository = Mockito.mock(ShortUrlRepositoryService::class.java)
+        val rabbitTemplate = RabbitTemplate()
+        val rabbitMQService = RabbitMQServiceImpl(rabbitTemplate,shortUrlRepository)
+        // Envía un mensaje a una cola de RabbitMQ
+        val url = "https://example.com"
+        val id = "abc123"
+        rabbitMQService.write(url, id)
+
+        // Verifica que el mensaje se haya enviado correctamente
+        val factory = ConnectionFactory()
+        factory.setUri("amqp://localhost")
+
+        val connection = factory.newConnection()
+        val channel = connection.createChannel()
+
+        // Obtiene el mensaje de la cola "queue"
+        val queue = "queue"
+        val consumer = object : DefaultConsumer(channel) {
+            override fun handleDelivery(consumerTag: String, envelope: Envelope,
+                                        properties: AMQP.BasicProperties, body: ByteArray) {
+                // Verifica que el cuerpo del mensaje sea igual a "$url:$id"
+                Assertions.assertEquals("$url:$id", String(body))
+            }
+        }
+        channel.basicConsume(queue, true, consumer)
+    }
+    @Test
+    fun testRabbitMQService() {
+        // Crea un objeto RabbitMQService y configúralo con
+        val shortUrlRepository = Mockito.mock(ShortUrlRepositoryService::class.java)
+        val rabbitTemplate = RabbitTemplate()
+        val rabbitMQService = RabbitMQServiceImpl(rabbitTemplate,shortUrlRepository)
+
+        // Envía un mensaje de prueba a la cola "queue"
+        rabbitMQService.write("Hello, world!", "queue")
+
+        // Comprueba si el mensaje ha sido escrito correctamente en la cola
+        //assertTrue(rabbitMQService.read())
+    }
+
+    @Test
+    fun testRabbitMQServiceIsUsed() {
+        runBlocking { val rabbitMQService = Mockito.mock(RabbitMQService::class.java)
+
+            // Creamos una instancia del caso de uso que utiliza el mock del servicio de RabbitMQ
+            val createShortUrlUseCase = CreateShortUrlUseCaseImpl(
+                shortUrlRepository = Mockito.mock(ShortUrlRepositoryService::class.java),
+                validatorService = ValidatorServiceImpl(),
+                hashService = HashServiceImpl(),
+                rabbitMQService = rabbitMQService)
+            // Llamamos al caso de uso con una URL válida
+            createShortUrlUseCase.create("http://google.com", false, ShortUrlProperties(ip = "127.0.0.1"))
+
+            // Verificamos que se llama al servicio de RabbitMQ con la URL y el ID correctos
+            verify(rabbitMQService).write("http://google.com", "58f3ae21")
+        } }
+    // Creamos un mock del servicio de RabbitMQ
 
 
 }
