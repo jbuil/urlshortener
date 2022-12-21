@@ -153,7 +153,7 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
     override  fun saveFile(file: MultipartFile): ByteArray {
         if (!file.isEmpty) {
             val bytes = file.bytes
-            val path: Path = Paths.get("/Users/pedroaibar/7cuatri/IG/urlshortener/files" + file.originalFilename)
+            val path: Path = Paths.get(uploadFolder + file.originalFilename)
             Files.write(path, bytes)
             var list: MutableList<String> = ArrayList<String>()
             var fr = Files.newBufferedReader(path, StandardCharsets.UTF_8)
@@ -170,8 +170,10 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
                             wantQR = false,
                             data = ShortUrlProperties(ip = "127.0.0.1")
                         )
+                        writer.writeNext(arrayOf(i))
                         writer.writeNext(arrayOf("http://localhost:8080/" + su.hash))
                     } else {
+                        writer.writeNext(arrayOf(i))
                         writer.writeNext(arrayOf("invalid_URL"))
                     }
                 }
