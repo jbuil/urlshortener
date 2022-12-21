@@ -75,7 +75,7 @@ class UrlShortenerControllerImpl(
     val cacheManager: CacheManager
 ) : UrlShortenerController {
     @GetMapping("/{id:(?!api|docs|index|opeenApi.yaml).*}")
-        override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> =
+    override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> =
         redirectUseCase.redirectTo(id).let {
             var userAgent: UserAgent? = null
             val redirection = redirectUseCase.redirectTo(id)
@@ -106,10 +106,10 @@ class UrlShortenerControllerImpl(
             h.location = URI.create(it.target)
 
             val clikOut = ClickOut(
-                    hash = id,
-                    browser = userAgent?.browser?.toString(),
-                    platform = userAgent?.os?.toString()
-                )
+                hash = id,
+                browser = userAgent?.browser?.toString(),
+                platform = userAgent?.os?.toString()
+            )
             ResponseEntity<ClickOut>(clikOut,h, HttpStatus.valueOf(it.mode))
         }
     @PostMapping("/api/link", consumes = [APPLICATION_FORM_URLENCODED_VALUE])
@@ -151,11 +151,9 @@ class UrlShortenerControllerImpl(
         }
         val qrBytes = qrCache?.get(hash, ByteArray::class.java)
 
-
-    @GetMapping("/api-docs")
-    fun getApiDoc(): ResponseEntity<Any> {
-        val file = File("/Users/pedroaibar/7cuatri/IG/urlshortener/delivery/src/main/kotlin/es/unizar/urlshortener/infrastructure/delivery/archivo.json")
-        val json = file.readText()
-        return ResponseEntity.ok(json)
+        // Devuelve la imagen como una respuesta HTTP
+        val headers = HttpHeaders()
+        headers.contentType = IMAGE_PNG
+        return ResponseEntity<ByteArray>(qrBytes, headers, HttpStatus.OK)
     }
 }
