@@ -1,6 +1,7 @@
 package es.unizar.urlshortener
 
 import GenerateQRUseCaseImpl
+import es.unizar.urlshortener.core.WebSocketService
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
 import es.unizar.urlshortener.core.usecases.InfoHTTPHeaderCaseImpl
 import es.unizar.urlshortener.core.usecases.LogClickUseCaseImpl
@@ -19,6 +20,13 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.messaging.simp.config.MessageBrokerRegistry
+import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping
+import org.springframework.web.socket.WebSocketHandler
+import org.springframework.web.socket.WebSocketSession
+import org.springframework.web.socket.config.annotation.*
+import org.springframework.web.socket.handler.TextWebSocketHandler
+import org.springframework.web.socket.server.support.WebSocketHandlerMapping
 
 
 /**
@@ -31,9 +39,12 @@ class ApplicationConfiguration(
     @Autowired val shortUrlEntityRepository: ShortUrlEntityRepository,
     @Autowired val clickEntityRepository: ClickEntityRepository,
     @Autowired val rabbitTemplate: RabbitTemplate,
-
+    @Autowired val webSocketService: WebSocketService
 
     ) {
+
+
+
     @Bean
     fun clickRepositoryService() = ClickRepositoryServiceImpl(clickEntityRepository)
 

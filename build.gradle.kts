@@ -48,6 +48,9 @@ project(":core") {
        "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
        "implementation"("org.springframework:spring-core:5.3.22")
         "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
+        "implementation" ("org.springframework:spring-websocket:5.3.22")
+
+
     }
 }
 
@@ -92,6 +95,7 @@ project(":delivery") {
         "implementation"("org.springframework.boot:spring-boot-starter-thymeleaf")
         "testImplementation"( "org.jetbrains.kotlinx:kotlinx-coroutines-test:latest.release")
         "implementation"("org.springframework.boot:spring-boot-starter-cache")
+        "implementation" ("org.springframework.boot:spring-boot-starter-websocket")
         "implementation"("com.google.zxing:core:3.4.0")
     }
     tasks.getByName<BootJar>("bootJar") {
@@ -115,7 +119,7 @@ project(":app") {
         "implementation"("org.webjars:jquery:$jqueryVersion")
         "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
         "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
-
+        "implementation" ("org.springframework.boot:spring-boot-starter-websocket")
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.springframework.boot:spring-boot-starter-web")
         "testImplementation"("org.springframework.boot:spring-boot-starter-jdbc")

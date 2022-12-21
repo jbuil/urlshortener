@@ -1,5 +1,7 @@
 package es.unizar.urlshortener.core
 
+import org.springframework.web.socket.WebSocketSession
+
 /**
  * [ClickRepositoryService] is the port to the repository that provides persistence to [Clicks][Click].
  */
@@ -67,5 +69,8 @@ interface RabbitMQService{
  */
 interface GoogleSafeBrowsingService{
     fun isSafe(url: String): Boolean
+}
+interface WebSocketService{
+    fun createSession(): WebSocketSession
 }
 

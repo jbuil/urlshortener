@@ -12,6 +12,9 @@ import org.springframework.amqp.rabbit.annotation.*
 import org.springframework.amqp.rabbit.core.*
 import org.springframework.stereotype.*
 import org.springframework.web.multipart.*
+import org.springframework.web.socket.WebSocketSession
+import org.springframework.web.socket.client.standard.StandardWebSocketClient
+import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.awt.*
 import java.awt.image.*
 import java.io.*
@@ -143,21 +146,22 @@ class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
 interface UploadFileService{
 
 
-    fun saveFile(file: MultipartFile): ByteArray
+    fun saveFile(file: MultipartFile, progressCallback: (Int) -> Unit): ByteArray
 }
 @Service
 class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUseCase,
                             private val shortUrlRepository: ShortUrlRepositoryService) : UploadFileService {
     val uploadFolder: String = "..//files//"
 
-    override fun saveFile(file: MultipartFile): ByteArray {
+    override fun saveFile(file: MultipartFile, progressCallback: (Int) -> Unit): ByteArray {
         if (!file.isEmpty) {
             val inputStream = file.inputStream
             val reader = BufferedReader(InputStreamReader(inputStream))
 
             val csv = StringWriter()
             val writer = CSVWriter(csv)
-
+            val totalLines = file.inputStream.bufferedReader().useLines { it.count() }
+            var lineCount = 0
             var line = reader.readLine()
             while (line != null) {
                 val items = line.split(',')
@@ -174,6 +178,9 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
                     }
                 }
                 line = reader.readLine()
+                lineCount++
+                // Enviar progreso a través de la función de devolución de llamada
+                progressCallback((lineCount / totalLines) * 100)
             }
 
             writer.close()
@@ -184,6 +191,16 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
             return ByteArray(0)
         }
     }
+
+    class WebSocketServiceImpl(private val client: StandardWebSocketClient) : WebSocketService {
+        override fun createSession(): WebSocketSession {
+            val uri = URI("ws://localhost:8080/ws")
+            val handler = TextWebSocketHandler()
+            return client.doHandshake(handler, uri.toString()).get()
+        }
+    }
+
+
 
 }
 

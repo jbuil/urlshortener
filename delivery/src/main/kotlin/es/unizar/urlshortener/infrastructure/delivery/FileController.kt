@@ -11,6 +11,8 @@ import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
+import org.springframework.web.socket.TextMessage
+import org.springframework.web.socket.WebSocketSession
 import java.io.File
 import java.io.IOException
 import java.net.URI
@@ -21,14 +23,17 @@ import kotlin.collections.List
 
 interface FileController {
   // fun index(): String
-    fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): ResponseEntity<ByteArray>
+  fun uploadFile(@RequestParam("file") file: MultipartFile,
+                 attributes: RedirectAttributes,
+                 session: WebSocketSession
+  ): ResponseEntity<ByteArray>
     fun status(): String
     fun upload(request: HttpServletRequest) : String
     fun download():String
 }
 
 @Controller
-public class FileControllerImpl (
+class FileControllerImpl (
         val uploadFileService: UploadFileService
 ) : FileController {
 
@@ -39,17 +44,23 @@ public class FileControllerImpl (
     }
 
     @PostMapping("/api/bulk")
-    override  fun uploadFile(@RequestParam("file") file: MultipartFile,
-                                    attributes: RedirectAttributes ): ResponseEntity<ByteArray> {
+    override fun uploadFile(@RequestParam("file") file: MultipartFile,
+                   attributes: RedirectAttributes,
+                   session: WebSocketSession
+    ): ResponseEntity<ByteArray> {
 
-        val csv = uploadFileService.saveFile(file)
+        val csv = uploadFileService.saveFile(file) { progress ->
+            session.sendMessage(TextMessage(progress.toString()))
+        }
         val headers = HttpHeaders()
         headers.contentType = MediaType("text", "csv")
         if(csv.contentEquals(ByteArray(0))){
-             return ResponseEntity(csv, headers, HttpStatus.OK)
+            return ResponseEntity(csv, headers, HttpStatus.OK)
         }
         return ResponseEntity(csv, headers, HttpStatus.CREATED)
     }
+
+
 
 
 
