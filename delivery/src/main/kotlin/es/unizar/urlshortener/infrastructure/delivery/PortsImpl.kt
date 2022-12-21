@@ -193,6 +193,11 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
     }
 
     class WebSocketServiceImpl(private val client: StandardWebSocketClient) : WebSocketService {
+        private var session: WebSocketSession? = null
+
+         fun afterConnectionEstablished(session: WebSocketSession) {
+            this.session = session
+        }
         override fun createSession(): WebSocketSession {
             val uri = URI("ws://localhost:8080/ws")
             val handler = TextWebSocketHandler()

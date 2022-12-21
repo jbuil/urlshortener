@@ -24,7 +24,6 @@ import kotlin.collections.List
 interface FileController {
   // fun index(): String
   fun uploadFile(@RequestParam("file") file: MultipartFile,
-                 attributes: RedirectAttributes,
                  session: WebSocketSession
   ): ResponseEntity<ByteArray>
     fun status(): String
@@ -45,7 +44,6 @@ class FileControllerImpl (
 
     @PostMapping("/api/bulk")
     override fun uploadFile(@RequestParam("file") file: MultipartFile,
-                   attributes: RedirectAttributes,
                    session: WebSocketSession
     ): ResponseEntity<ByteArray> {
 

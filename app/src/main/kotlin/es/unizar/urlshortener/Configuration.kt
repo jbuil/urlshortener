@@ -38,8 +38,7 @@ import org.springframework.web.socket.server.support.WebSocketHandlerMapping
 class ApplicationConfiguration(
     @Autowired val shortUrlEntityRepository: ShortUrlEntityRepository,
     @Autowired val clickEntityRepository: ClickEntityRepository,
-    @Autowired val rabbitTemplate: RabbitTemplate,
-    @Autowired val webSocketService: WebSocketService
+    @Autowired val rabbitTemplate: RabbitTemplate
 
     ) {
 
