@@ -45,8 +45,8 @@ public class FileControllerImpl (
         ).let {
             println("entra en /api/bulk")
             var h = HttpHeaders()
-            h.location = URI.create(it.get(0))
-            h.contentType = MediaType("text/csv")
+            h.location = URI.create(it[0])
+            h.contentType = MediaType("text" , "csv")
             ResponseEntity<List<String>>(it, h, HttpStatus.CREATED)
         }
 
