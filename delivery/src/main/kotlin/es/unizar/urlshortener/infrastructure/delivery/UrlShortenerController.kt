@@ -159,9 +159,11 @@ class UrlShortenerControllerImpl(
         }
         val qrBytes = qrCache?.get(hash, ByteArray::class.java)
 
-        // Devuelve la imagen como una respuesta HTTP
-        val headers = HttpHeaders()
-        headers.contentType = IMAGE_PNG
-        return ResponseEntity<ByteArray>(qrBytes, headers, HttpStatus.OK)
+
+    @GetMapping("/api-docs")
+    fun getApiDoc(): ResponseEntity<Any> {
+        val file = File("/Users/pedroaibar/7cuatri/IG/urlshortener/delivery/src/main/kotlin/es/unizar/urlshortener/infrastructure/delivery/archivo.json")
+        val json = file.readText()
+        return ResponseEntity.ok(json)
     }
 }
