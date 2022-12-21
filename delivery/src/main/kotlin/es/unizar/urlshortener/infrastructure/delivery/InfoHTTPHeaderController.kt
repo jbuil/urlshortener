@@ -49,46 +49,47 @@ class InfoHTTPHeaderControllerImpl (
 
 
 
-
     @GetMapping("/api/link/{id}")
     override fun getInfo(@PathVariable id: String,request: HttpServletRequest): ResponseEntity<ArrayList<ClickOut>> {
         return runBlocking {
-            val let = infoHTTPHeaderUseCase.getInfo(id).let {
-            var response: ArrayList<ClickOut> = ArrayList<ClickOut>()
-            var url: ShortUrl? = infoHTTPHeaderUseCase.getInfoUrl(id)
-            if (it != null) {
-                for (i in it) {
-                    if (url != null) {
-                        if(url.properties.safe == null){
-                            throw UrlNotVerified(id)
-                        } else if (url != null) {
-                            if( !url.properties.safe!!){
-                                throw UrlNotSafe(id)
-                            }
-                        }
+            val url: ShortUrl? = infoHTTPHeaderUseCase.getInfoUrl(id)
+            if (url != null) {
+                if(url.properties.safe == null){
+                    throw UrlNotVerified(id)
+                } else {
+                    if( !url.properties.safe!!){
+                        throw UrlNotSafe(id)
                     }
-                    response.add(
-                        ClickOut(
-                            hash = i.hash,
-                            browser = i.properties.browser,
-                            platform = i.properties.platform,
-                            created = i.created
-                        )
-                    )
-
-
                 }
             }
 
-            ResponseEntity<ArrayList<ClickOut>>(response, HttpStatus.OK)
-        }
+            val let = infoHTTPHeaderUseCase.getInfo(id).let {
+                println("entra")
+                var response: ArrayList<ClickOut> = ArrayList<ClickOut>()
+                if (it != null) {
+                    for (i in it) {
+                        response.add(
+                            ClickOut(
+                                hash = i.hash,
+                                browser = i.properties.browser,
+                                platform = i.properties.platform,
+                                created = i.created
+                            )
+                        )
+                    }
+                }
+
+                ResponseEntity<ArrayList<ClickOut>>(response, HttpStatus.OK)
+            }
             return@runBlocking let
         }
-
     }
 
 
-
-
 }
+
+
+
+
+
 

@@ -13,17 +13,22 @@ import java.time.format.FormatStyle;
  */
 interface InfoHTTPHeaderUseCase {
     fun getInfo(key: String): List<Click>?
-    //fun getInfo(): Click
+    fun getInfoUrl(key: String): ShortUrl?
 }
 
 /**
  * Implementation of [InfoClientUserCase].
  */
 class InfoHTTPHeaderCaseImpl(
-    private val clickRepository: ClickRepositoryService
+    private val clickRepository: ClickRepositoryService,
+    private val shortUrlRepositoryService: ShortUrlRepositoryService
 ) : InfoHTTPHeaderUseCase {
     override fun getInfo(key: String): List<Click> {
         return clickRepository.getInfo(key)
+    }
+
+    override fun getInfoUrl(key: String): ShortUrl? {
+        return shortUrlRepositoryService.findByKey(key)
     }
 
 }

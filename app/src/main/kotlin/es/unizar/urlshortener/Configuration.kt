@@ -97,6 +97,6 @@ class ApplicationConfiguration(
 
 
     @Bean
-    fun infoHTTPHeaderUserCase() = InfoHTTPHeaderCaseImpl(clickRepositoryService())
+    fun infoHTTPHeaderUserCase() = InfoHTTPHeaderCaseImpl(clickRepositoryService(),shortUrlRepositoryService())
 
 }
