@@ -156,12 +156,6 @@ class UrlShortenerControllerImpl(
             ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)
         }
 
-    override  fun uploadFilePage(@RequestParam("file") file: MultipartFile, attribute : RedirectAttributes, request: HttpServletRequest) : ResponseEntity<String> =
-        fileController.uploadFile(file, attribute).let {
-            val h = HttpHeaders()
-            h.set(CONTENT_TYPE, IMAGE_PNG.toString())
-            ResponseEntity<String>(it, h, HttpStatus.OK)
-        }
     @GetMapping("/api-docs")
     fun getApiDoc(): ResponseEntity<Any> {
         val file = File("/Users/pedroaibar/7cuatri/IG/urlshortener/delivery/src/main/kotlin/es/unizar/urlshortener/infrastructure/delivery/archivo.json")
