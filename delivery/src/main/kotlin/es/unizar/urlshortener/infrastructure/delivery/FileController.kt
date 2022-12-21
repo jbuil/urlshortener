@@ -1,6 +1,7 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
-import es.unizar.urlshortener.core.*
+import es.unizar.urlshortener.core.WebSocketService
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.FileSystemResource
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.HttpHeaders
@@ -23,17 +24,17 @@ import kotlin.collections.List
 
 interface FileController {
   // fun index(): String
-  fun uploadFile(@RequestParam("file") file: MultipartFile,
-                 session: WebSocketSession
+  fun uploadFile(@RequestParam("file") file: MultipartFile
   ): ResponseEntity<ByteArray>
     fun status(): String
     fun upload(request: HttpServletRequest) : String
     fun download():String
 }
 
-@Controller
+@RestController
 class FileControllerImpl (
-        val uploadFileService: UploadFileService
+        val uploadFileService: UploadFileService,
+        @Autowired val webSocketService: WebSocketService
 ) : FileController {
 
 
@@ -43,10 +44,12 @@ class FileControllerImpl (
     }
 
     @PostMapping("/api/bulk")
-    override fun uploadFile(@RequestParam("file") file: MultipartFile,
-                   session: WebSocketSession
+    override fun uploadFile(@RequestParam("file") file: MultipartFile
     ): ResponseEntity<ByteArray> {
 
+
+        val session = webSocketService.createSession()
+        println("aqio")
         val csv = uploadFileService.saveFile(file) { progress ->
             session.sendMessage(TextMessage(progress.toString()))
         }

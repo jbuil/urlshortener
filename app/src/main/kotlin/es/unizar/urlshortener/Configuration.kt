@@ -24,6 +24,7 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry
 import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping
 import org.springframework.web.socket.WebSocketHandler
 import org.springframework.web.socket.WebSocketSession
+import org.springframework.web.socket.client.standard.StandardWebSocketClient
 import org.springframework.web.socket.config.annotation.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
 import org.springframework.web.socket.server.support.WebSocketHandlerMapping
@@ -34,16 +35,22 @@ import org.springframework.web.socket.server.support.WebSocketHandlerMapping
  *
  * **Note**: Spring Boot is able to discover this [Configuration] without further configuration.
  */
+@EnableWebSocket
 @Configuration
 class ApplicationConfiguration(
     @Autowired val shortUrlEntityRepository: ShortUrlEntityRepository,
     @Autowired val clickEntityRepository: ClickEntityRepository,
-    @Autowired val rabbitTemplate: RabbitTemplate
+    @Autowired val rabbitTemplate: RabbitTemplate,
 
     ) {
 
 
 
+
+    @Bean
+    fun standardWebSocketClient(): StandardWebSocketClient {
+        return StandardWebSocketClient()
+    }
     @Bean
     fun clickRepositoryService() = ClickRepositoryServiceImpl(clickEntityRepository)
 
@@ -93,6 +100,8 @@ class ApplicationConfiguration(
     fun logClickUseCase() = LogClickUseCaseImpl(clickRepositoryService())
 
 
+    @Bean
+    fun webSocketService() = WebSocketServiceImpl(standardWebSocketClient())
 
     @Bean
     fun googleSafeBrowsing() = GoogleSafeBrowsingServiceImpl()
@@ -109,4 +118,13 @@ class ApplicationConfiguration(
     @Bean
     fun infoHTTPHeaderUserCase() = InfoHTTPHeaderCaseImpl(clickRepositoryService(),shortUrlRepositoryService())
 
+
+}
+@Configuration
+@EnableWebSocket
+class WebSocketConfiguration : WebSocketConfigurer {
+
+    override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
+        registry.addHandler(TextWebSocketHandler(), "/ws").setAllowedOrigins("*")
+    }
 }
