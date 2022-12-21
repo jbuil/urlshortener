@@ -1,7 +1,11 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import es.unizar.urlshortener.core.ClickProperties
+import es.unizar.urlshortener.core.ShortUrl
+import es.unizar.urlshortener.core.UrlNotSafe
+import es.unizar.urlshortener.core.UrlNotVerified
 import es.unizar.urlshortener.core.usecases.InfoHTTPHeaderUseCase
+import kotlinx.coroutines.runBlocking
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -31,7 +35,6 @@ interface InfoHTPPHeaderController {
      * **Note**:
      */
     fun getInfo(id: String,request: HttpServletRequest): ResponseEntity<ArrayList<ClickOut>>
-    fun getUserAgent( id: String, request: HttpServletRequest): ResponseEntity<ClickOut>
 }
 
 /**
@@ -49,10 +52,21 @@ class InfoHTTPHeaderControllerImpl (
 
     @GetMapping("/api/link/{id}")
     override fun getInfo(@PathVariable id: String,request: HttpServletRequest): ResponseEntity<ArrayList<ClickOut>> {
-        val let = infoHTTPHeaderUseCase.getInfo(id).let {
+        return runBlocking {
+            val let = infoHTTPHeaderUseCase.getInfo(id).let {
             var response: ArrayList<ClickOut> = ArrayList<ClickOut>()
+            var url: ShortUrl? = infoHTTPHeaderUseCase.getInfoUrl(id)
             if (it != null) {
                 for (i in it) {
+                    if (url != null) {
+                        if(url.properties.safe == null){
+                            throw UrlNotVerified(id)
+                        } else if (url != null) {
+                            if( !url.properties.safe!!){
+                                throw UrlNotSafe(id)
+                            }
+                        }
+                    }
                     response.add(
                         ClickOut(
                             hash = i.hash,
@@ -68,24 +82,9 @@ class InfoHTTPHeaderControllerImpl (
 
             ResponseEntity<ArrayList<ClickOut>>(response, HttpStatus.OK)
         }
-        return let
-    }
-    override fun getUserAgent(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> {
-        // Busca el objeto ClickOut con el ID especificado
-        val click = infoHTTPHeaderUseCase.getInfo(id)?.firstOrNull()
-        val clickOut = click?.let {
-            ClickOut(
-                hash = it.hash,
-                browser = click.properties.browser,
-                platform = click.properties.platform,
-                created = click.created
-            )
+            return@runBlocking let
         }
 
-
-        // Si se encuentra el objeto, asigna el valor de la cabecera User-Agent a la propiedad userAgent del objeto
-        // Devuelve el objeto ClickOut
-        return ResponseEntity.ok(clickOut)
     }
 
 

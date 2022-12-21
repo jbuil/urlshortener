@@ -92,12 +92,6 @@ class UrlShortenerControllerImpl(
             // y encabezado Retry-After configurado con el tiempo en el que se espera que el campo safe tenga un valor
             if (shortUrl != null) {
                 if (shortUrl.properties.safe == null) {
-                   // val error = "{\"error\": \"URI de destino no validada todavía\"}"
-                    val headers = HttpHeaders()
-                    val instant = Instant.ofEpochMilli(System.currentTimeMillis() + 50)
-                    headers.set(RETRY_AFTER, instant.toString())
-                   // val status = HttpStatus.SERVICE_UNAVAILABLE
-                    //return ResponseEntity<Void>(headers, status)
                     throw UrlNotVerified(id)
                 }
             }
@@ -105,13 +99,11 @@ class UrlShortenerControllerImpl(
             shortUrl?.properties?.let { it1 -> println(it1.safe) }
             if (shortUrl != null) {
                 if (shortUrl.properties.safe == false) {
-                    //return ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
                     throw UrlNotSafe(id)
                 }
             }
 
             h.location = URI.create(it.target)
-
 
             val clikOut = ClickOut(
                     hash = id,

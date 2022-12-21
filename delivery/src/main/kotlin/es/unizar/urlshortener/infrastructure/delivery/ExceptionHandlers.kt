@@ -31,7 +31,7 @@ class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
     @ResponseBody
     @ExceptionHandler(value = [UrlNotVerified::class])
     protected fun UrlNotVerified(ex: UrlNotVerified) =
-        ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+        ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .header("Retry-after", "10000")
     .body(ErrorMessage(HttpStatus.SERVICE_UNAVAILABLE.value(), ex.message))
 
@@ -39,6 +39,10 @@ class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
     @ExceptionHandler(value = [UrlNotSafe::class])
     @ResponseStatus(HttpStatus.FORBIDDEN)
     protected fun UrlNotSafe(ex: UrlNotSafe) = ErrorMessage(HttpStatus.FORBIDDEN.value(), ex.message)
+
+
+
+
 }
 
 data class ErrorMessage(

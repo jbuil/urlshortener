@@ -79,16 +79,22 @@ class QRServiceImpl : QRService {
 class RabbitMQServiceImpl(
     private val rabbitTemplate: RabbitTemplate,
     private val shortUrlRepository: ShortUrlRepositoryService,
-) : RabbitMQService {
 
+) : RabbitMQService {
+    var i = 0
     @RabbitListener(queues = arrayOf("safe"))
     override fun read(message: String) {
         val (url,hash) = message.split("::")
         print(url + hash)
-        shortUrlRepository.updateSafe(hash, GoogleSafeBrowsingServiceImpl().isSafe(url))
+        // Condición para la demo, url not verified
+        if(i == 0 && url == "http://www.unizar.es"){
+            i++
+        }
+        else{
+            shortUrlRepository.updateSafe(hash, GoogleSafeBrowsingServiceImpl().isSafe(url))
+        }
 
-        // Agrega el listener al RabbitTemplate
-        //rabbitTemplate.addListener(listener)
+
     }
     override fun write(url: String, id: String) {
         // Envía un mensaje a la cola
