@@ -39,8 +39,15 @@
         <!-- Botón de submit para enviar la solicitud -->
         <button type="submit">Cargar</button>
     </form>
+    <pre id="csv-content"></pre>
+    <!-- Botón para descargar el archivo CSV -->
+    <button id="download-button">Descargar CSV</button>
+</div>
 </div>
 <script>
+    // Variable para almacenar el contenido del archivo CSV
+    let csvContent = '';
+
     // Manejador de eventos para el formulario de subida de archivos
     document.getElementById('upload-form').addEventListener('submit', event => {
         event.preventDefault();
@@ -56,9 +63,30 @@
         fetch('/api/bulk', {
             method: 'POST',
             body: formData
+        }).then(response => {
+            // Si la solicitud se completó correctamente, obtener el contenido del archivo CSV
+            return response.text();
+        }).then(csv => {
+            // Almacenar el contenido del archivo CSV en la variable csvContent
+            csvContent = csv;
+            // Establecer el contenido de la etiqueta "pre" con el contenido del archivo CSV
+            document.getElementById('csv-content').textContent = csvContent;
         });
     });
+
+    // Manejador de eventos para el botón "Descargar CSV"
+    document.getElementById('download-button').addEventListener('click', event => {
+        // Crear un enlace para descargar el archivo CSV
+        const a = document.createElement('a');
+        a.download = 'file.csv';
+        a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
 </script>
+
+
 </body>
 </html>
 

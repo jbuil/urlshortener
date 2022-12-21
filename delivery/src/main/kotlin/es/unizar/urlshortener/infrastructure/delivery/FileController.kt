@@ -41,9 +41,13 @@ public class FileControllerImpl (
     @PostMapping("/api/bulk")
     override  fun uploadFile(@RequestParam("file") file: MultipartFile,
                                     attributes: RedirectAttributes ): ResponseEntity<ByteArray> {
+
         val csv = uploadFileService.saveFile(file)
         val headers = HttpHeaders()
         headers.contentType = MediaType("text", "csv")
+        if(csv.contentEquals(ByteArray(0))){
+             return ResponseEntity(csv, headers, HttpStatus.OK)
+        }
         return ResponseEntity(csv, headers, HttpStatus.CREATED)
     }
 
