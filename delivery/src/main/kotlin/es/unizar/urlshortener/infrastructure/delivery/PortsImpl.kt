@@ -168,10 +168,10 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
                             wantQR = false,
                             data = ShortUrlProperties(ip = "127.0.0.1")
                         )
-                        writer.writeNext(arrayOf(i))
+                        writer.writeNext(arrayOf(item))
                         writer.writeNext(arrayOf("http://localhost:8080/" + su.hash))
                     } else {
-                        writer.writeNext(arrayOf(i))
+                        writer.writeNext(arrayOf(item))
                         writer.writeNext(arrayOf("invalid_URL"))
                     }
                 }
