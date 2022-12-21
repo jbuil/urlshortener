@@ -1,10 +1,6 @@
 package es.unizar.urlshortener.infrastructure.repositories
 
-import es.unizar.urlshortener.core.Click
-import es.unizar.urlshortener.core.ClickRepositoryService
-import es.unizar.urlshortener.core.ShortUrl
-import es.unizar.urlshortener.core.ShortUrlRepositoryService
-import org.springframework.beans.factory.annotation.Autowired
+import es.unizar.urlshortener.core.*
 
 /**
  * Implementation of the port [ClickRepositoryService].
@@ -39,13 +35,11 @@ class ShortUrlRepositoryServiceImpl(
     override fun save(su: ShortUrl): ShortUrl = shortUrlEntityRepository.save(su.toEntity()).toDomain()
 
     override  fun updateSafe(hash: String, safe: Boolean) {
-
         val shortUrlEntity = shortUrlEntityRepository.findByHash(hash)
         shortUrlEntity?.let {
             it.safe = safe
             shortUrlEntityRepository.save(it)
         }
     }
-
 }
 

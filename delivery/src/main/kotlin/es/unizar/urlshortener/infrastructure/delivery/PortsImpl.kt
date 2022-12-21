@@ -18,7 +18,6 @@ import java.io.*
 import java.net.*
 import java.net.http.*
 import java.nio.charset.*
-import java.nio.file.*
 import javax.imageio.*
 
 
@@ -82,7 +81,7 @@ class RabbitMQServiceImpl(
 
 ) : RabbitMQService {
     var i = 0
-    @RabbitListener(queues = arrayOf("safe"))
+    @RabbitListener(queues = ["safe"])
     override fun read(message: String) {
         val (url,hash) = message.split("::")
         // Condición para la demo, url not verified
@@ -99,8 +98,7 @@ class RabbitMQServiceImpl(
         // Envía un mensaje a la cola
         val queue = "safe"
         val message = "$url::$id"
-        rabbitTemplate.convertAndSend("exchange", "safe", message)
-        println("Mensaje enviado: $message")
+        rabbitTemplate.convertAndSend("exchange", queue, message)
     }
 
 }

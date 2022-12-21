@@ -17,6 +17,7 @@ var bootstrapVersion = "3.4.0"
 var jqueryVersion = "3.6.1"
 var guavaVersion = "31.1-jre"
 var commonsValidatorVersion = "1.6"
+var mockkVersion = "1.13.3"
 
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
@@ -93,6 +94,8 @@ project(":delivery") {
         "testImplementation"( "org.jetbrains.kotlinx:kotlinx-coroutines-test:latest.release")
         "implementation"("org.springframework.boot:spring-boot-starter-cache")
         "implementation"("com.google.zxing:core:3.4.0")
+        "testImplementation"("io.mockk:mockk:${mockkVersion}")
+        "implementation"("org.springframework.boot:spring-boot-starter-webflux")
     }
     tasks.getByName<BootJar>("bootJar") {
         enabled = false

@@ -1,9 +1,9 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import GenerateQRUseCase
-import com.google.common.net.HttpHeaders.*
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
+import kotlinx.coroutines.*
 import org.springframework.cache.*
 import org.springframework.cache.annotation.*
 import org.springframework.hateoas.server.mvc.*
@@ -12,7 +12,6 @@ import org.springframework.http.MediaType.*
 import org.springframework.web.bind.annotation.*
 import ru.chermenin.ua.*
 import java.net.*
-import java.time.*
 import javax.servlet.http.*
 
 
@@ -33,7 +32,7 @@ interface UrlShortenerController {
      *
      * **Note**: Delivery of use case [CreateShortUrlUseCase].
      */
-    suspend fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
+    fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
 
     fun getQR(hash: String, request: HttpServletRequest) : ResponseEntity<ByteArray>
 
@@ -74,7 +73,7 @@ class UrlShortenerControllerImpl(
     val fileController: FileController,
     val cacheManager: CacheManager
 ) : UrlShortenerController {
-    @GetMapping("/{id:(?!api|docs|index|opeenApi.yaml|upload).*}")
+    @GetMapping("/{id:(?!api|docs|index|openApi.yaml|upload).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> =
         redirectUseCase.redirectTo(id).let {
             var userAgent: UserAgent? = null
@@ -105,15 +104,15 @@ class UrlShortenerControllerImpl(
 
             h.location = URI.create(it.target)
 
-            val clikOut = ClickOut(
+            val clickOut = ClickOut(
                 hash = id,
                 browser = userAgent?.browser?.toString(),
                 platform = userAgent?.os?.toString()
             )
-            ResponseEntity<ClickOut>(clikOut,h, HttpStatus.valueOf(it.mode))
+            ResponseEntity<ClickOut>(clickOut,h, HttpStatus.valueOf(it.mode))
         }
     @PostMapping("/api/link", consumes = [APPLICATION_FORM_URLENCODED_VALUE])
-    override suspend fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> =
+    override fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> =
         createShortUrlUseCase.create(
             url = data.url,
             wantQR = data.wantQR == "Yes",
@@ -129,31 +128,42 @@ class UrlShortenerControllerImpl(
                 url = url,
                 qr = it.qr?.let { it1 -> URI.create(it1) }
             )
-            if(data.wantQR == "Yes") {
-                val qrCache = cacheManager.getCache("qr-codes")
-                val qrKey = it.hash
-                qrCache?.put(qrKey, generateQRUseCase.generateQR(it.hash))
-            }
+            // Comprobar si campo safe ha sido actualizado por Rabbit
+            runBlocking { checkSafe(data.wantQR, it) }
             ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
         }
-
+    private suspend fun generateQR(hash: String) {
+        val qrCache = cacheManager.getCache("qr-codes")
+        qrCache?.put(hash, generateQRUseCase.generateQR(hash))
+    }
+    private suspend fun checkSafe(wantQR: String, su: ShortUrl) {
+        var safe = su.properties.safe
+        if(safe == null) safe = shortUrlRepository.findByKey(su.hash)?.properties?.safe
+        while(safe == null) {
+            safe = shortUrlRepository.findByKey(su.hash)?.properties?.safe
+        }
+        if((wantQR == "Yes") && (safe == true)) {
+            generateQR(su.hash)
+        }
+    }
     @Cacheable("qr-codes")
     @GetMapping("/{hash}/qr")
     override fun getQR(@PathVariable hash: String, request: HttpServletRequest): ResponseEntity<ByteArray> {
-        /*generateQRUseCase.generateQR(hash).let {
-            val h = HttpHeaders()
-            h.set(CONTENT_TYPE, IMAGE_PNG.toString())
-            ResponseEntity<ByteArrayResource>(it, h, HttpStatus.OK)*/
-        // Obtiene el código QR de la cache
+        // Obtiene el código QR de la caché
         val qrCache = cacheManager.getCache("qr-codes")
-        if(qrCache == null) {
-            println("Nulo melon")
-        }
         val qrBytes = qrCache?.get(hash, ByteArray::class.java)
-
-        // Devuelve la imagen como una respuesta HTTP
-        val headers = HttpHeaders()
-        headers.contentType = IMAGE_PNG
-        return ResponseEntity<ByteArray>(qrBytes, headers, HttpStatus.OK)
+        if(qrBytes != null) {
+            // Devuelve la imagen como una respuesta HTTP
+            val headers = HttpHeaders()
+            headers.contentType = IMAGE_PNG
+            return ResponseEntity<ByteArray>(qrBytes, headers, HttpStatus.OK)
+        } else {
+            // Imagen QR del hash no existe en la caché
+            val shortURL = shortUrlRepository.findByKey(hash) ?: throw QrUriNotFound(hash)
+            when (shortURL.properties.safe) {
+                null -> throw UrlNotVerified(shortURL.redirection.target)
+                false -> throw UrlNotSafe(shortURL.redirection.target)
+                else -> throw QrUriNotFound(hash)}  // shortURL.qr == null
+        }
     }
 }

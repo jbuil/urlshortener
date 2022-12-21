@@ -21,7 +21,7 @@ class CreateShortUrlUseCaseImpl(
     private val hashService: HashService,
     private val rabbitMQService: RabbitMQService
 ) : CreateShortUrlUseCase {
-    override  fun create(url: String, wantQR: Boolean, data: ShortUrlProperties): ShortUrl {
+    override fun create(url: String, wantQR: Boolean, data: ShortUrlProperties): ShortUrl {
         if (!validatorService.isValid(url)) {
             throw InvalidUrlException(url)
         }
@@ -36,8 +36,8 @@ class CreateShortUrlUseCaseImpl(
                 sponsor = data.sponsor
             )
         )
-        rabbitMQService.write(url, id)
         shortUrlRepository.save(su)
+        rabbitMQService.write(url, id)
 
         // Return the shortened URL
         return su
