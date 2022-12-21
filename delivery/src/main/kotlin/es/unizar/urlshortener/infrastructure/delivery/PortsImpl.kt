@@ -199,7 +199,7 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
 }
 class WebSocketServiceImpl(private val client: StandardWebSocketClient) : WebSocketService {
     override fun createSession(): WebSocketSession {
-        val uri = URI("ws://localhost:8080/ws")
+        val uri = URI("ws://localhost:8080/prueba")
         val handler = TextWebSocketHandler()
         print("Se crea una sesion")
         return client.doHandshake(handler, uri.toString()).get()

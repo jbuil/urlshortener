@@ -128,3 +128,12 @@ class WebSocketConfiguration : WebSocketConfigurer {
         registry.addHandler(TextWebSocketHandler(), "/ws").setAllowedOrigins("*")
     }
 }
+@Configuration
+@EnableWebSocketMessageBroker
+class WebSocketConfiguratioon : WebSocketMessageBrokerConfigurer {
+
+    override fun registerStompEndpoints(registry: StompEndpointRegistry) {
+        registry.addEndpoint("/prueba").setAllowedOrigins("*").withSockJS()
+    }
+}
+
