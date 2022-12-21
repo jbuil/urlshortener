@@ -33,7 +33,7 @@
 <!-- Contenedor para centrar el formulario -->
 <div class="container">
     <!-- Formulario de subida de archivos -->
-    <form id="upload-form" action="/link/bulk" method="POST" enctype="multipart/form-data">
+    <form id="upload-form" action="/api/bulk" method="POST" enctype="multipart/form-data">
         <!-- Campo de tipo file para seleccionar el archivo -->
         <input type="file" name="file" />
         <!-- Botón de submit para enviar la solicitud -->
@@ -55,7 +55,7 @@
         // Enviar la solicitud POST al endpoint
         fetch('/api/bulk', {
             method: 'POST',
-            body: new FormData(document.getElementById('upload-form'))
+            body: formData
         });
     });
 </script>

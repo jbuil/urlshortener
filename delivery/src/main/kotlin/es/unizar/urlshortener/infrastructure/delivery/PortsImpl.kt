@@ -85,7 +85,6 @@ class RabbitMQServiceImpl(
     @RabbitListener(queues = arrayOf("safe"))
     override fun read(message: String) {
         val (url,hash) = message.split("::")
-        print(url + hash)
         // Condición para la demo, url not verified
         if(i == 0 && url == "http://www.unizar.es"){
             i++
@@ -142,22 +141,25 @@ class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
 }
 
 interface UploadFileService{
-    abstract val createShortUrlUseCase: CreateShortUrlUseCase
 
-    suspend fun saveFile(file: MultipartFile): List<String>
+
+    fun saveFile(file: MultipartFile): ByteArray
 }
 @Service
-class UploadFileServiceImpl(override val createShortUrlUseCase: CreateShortUrlUseCase) : UploadFileService {
+class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUseCase,
+                            private val shortUrlRepository: ShortUrlRepositoryService) : UploadFileService {
     val uploadFolder: String = "..//files//"
 
-    override suspend fun saveFile(file: MultipartFile): List<String>{
+    override  fun saveFile(file: MultipartFile): ByteArray {
         if (!file.isEmpty) {
             val bytes = file.bytes
-            val path: Path = Paths.get(uploadFolder + file.originalFilename)
+            val path: Path = Paths.get("/Users/pedroaibar/7cuatri/IG/urlshortener/files" + file.originalFilename)
             Files.write(path, bytes)
             var list: MutableList<String> = ArrayList<String>()
             var fr = Files.newBufferedReader(path, StandardCharsets.UTF_8)
             var reader = CSVReader(fr)
+            val csv = StringWriter()
+            val writer = CSVWriter(csv)
             var line = reader.readNext()
 
             while ( line != null) {
@@ -168,20 +170,20 @@ class UploadFileServiceImpl(override val createShortUrlUseCase: CreateShortUrlUs
                             wantQR = false,
                             data = ShortUrlProperties(ip = "127.0.0.1")
                         )
-                        list.add("http://localhost:8080/" + su.hash)
+                        writer.writeNext(arrayOf("http://localhost:8080/" + su.hash))
                     } else {
-                        list.add("invalid_URL")
+                        writer.writeNext(arrayOf("invalid_URL"))
                     }
                 }
                 line = reader.readNext()
             }
 
-            fr.close()
+            writer.close()
             reader.close()
 
-            return list
+            return csv.toString().toByteArray(StandardCharsets.UTF_8)
         } else {
-            return emptyList()
+            return ByteArray(0)
         }
     }
 }

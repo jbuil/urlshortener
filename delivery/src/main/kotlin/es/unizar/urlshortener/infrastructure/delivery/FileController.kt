@@ -2,6 +2,7 @@ package es.unizar.urlshortener.infrastructure.delivery
 
 import es.unizar.urlshortener.core.*
 import org.springframework.core.io.FileSystemResource
+import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -20,7 +21,7 @@ import kotlin.collections.List
 
 interface FileController {
   // fun index(): String
-  suspend fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): ResponseEntity<List<String>>
+    fun uploadFile(@RequestParam("file") file: MultipartFile, attributes: RedirectAttributes ): ResponseEntity<ByteArray>
     fun status(): String
     fun upload(request: HttpServletRequest) : String
     fun download():String
@@ -38,17 +39,14 @@ public class FileControllerImpl (
     }
 
     @PostMapping("/api/bulk")
-    override suspend fun uploadFile(@RequestParam("file") file: MultipartFile,
-                                    attributes: RedirectAttributes ): ResponseEntity<List<String>> =
-        uploadFileService.saveFile(
-            file
-        ).let {
-            println("entra en /api/bulk")
-            var h = HttpHeaders()
-            h.location = URI.create(it[0])
-            h.contentType = MediaType("text" , "csv")
-            ResponseEntity<List<String>>(it, h, HttpStatus.CREATED)
-        }
+    override  fun uploadFile(@RequestParam("file") file: MultipartFile,
+                                    attributes: RedirectAttributes ): ResponseEntity<ByteArray> {
+        val csv = uploadFileService.saveFile(file)
+        val headers = HttpHeaders()
+        headers.contentType = MediaType("text", "csv")
+        return ResponseEntity(csv, headers, HttpStatus.CREATED)
+    }
+
 
 
 
