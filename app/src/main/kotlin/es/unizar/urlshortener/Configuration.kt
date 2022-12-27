@@ -1,7 +1,6 @@
 package es.unizar.urlshortener
 
 import GenerateQRUseCaseImpl
-import es.unizar.urlshortener.core.WebSocketService
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
 import es.unizar.urlshortener.core.usecases.InfoHTTPHeaderCaseImpl
 import es.unizar.urlshortener.core.usecases.LogClickUseCaseImpl
@@ -11,6 +10,7 @@ import es.unizar.urlshortener.infrastructure.repositories.ClickEntityRepository
 import es.unizar.urlshortener.infrastructure.repositories.ClickRepositoryServiceImpl
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlEntityRepository
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlRepositoryServiceImpl
+import kotlinx.coroutines.NonCancellable.message
 import org.springframework.amqp.core.Binding
 import org.springframework.amqp.core.BindingBuilder
 import org.springframework.amqp.core.Queue
@@ -20,14 +20,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.messaging.simp.config.MessageBrokerRegistry
-import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping
-import org.springframework.web.socket.WebSocketHandler
+import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.client.standard.StandardWebSocketClient
 import org.springframework.web.socket.config.annotation.*
 import org.springframework.web.socket.handler.TextWebSocketHandler
-import org.springframework.web.socket.server.support.WebSocketHandlerMapping
+import java.util.*
 
 
 /**
@@ -125,15 +123,49 @@ class ApplicationConfiguration(
 class WebSocketConfiguration : WebSocketConfigurer {
 
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-        registry.addHandler(TextWebSocketHandler(), "/ws").setAllowedOrigins("*")
+        registry.addHandler(MyWebSocketHandler(), "/ws").setAllowedOrigins("*")
     }
 }
-@Configuration
-@EnableWebSocketMessageBroker
-class WebSocketConfiguratioon : WebSocketMessageBrokerConfigurer {
 
-    override fun registerStompEndpoints(registry: StompEndpointRegistry) {
-        registry.addEndpoint("/prueba").setAllowedOrigins("*").withSockJS()
+class MyWebSocketHandler : TextWebSocketHandler() {
+    // Mapa que almacena el progreso y el identificador de cliente de cada sesión
+    val progressMap = mutableMapOf<String, Pair<String, Int>>()
+    val sessions = mutableListOf<WebSocketSession>()
+    override fun afterConnectionEstablished(session: WebSocketSession) {
+        // Genera un identificador único para la sesión
+        val sessionId = UUID.randomUUID().toString()
+
+        sessions.add(session)
+        // Establece el identificador como un atributo de sesión
+        session.attributes["sessionId"] = sessionId
+
+        // Obtiene el identificador de cliente del atributo de sesión
+        val clientId = session.attributes["clientId"] as String
+
+        // Agrega una nueva entrada al mapa para el identificador de sesión y el identificador de cliente
+        progressMap[sessionId] = Pair(clientId, 0)
+
+        println(session.attributes["sessionId"])
     }
+    override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
+        // Obtiene el identificador de la sesión del atributo de sesión
+        val sessionId = session.attributes["sessionId"] as String
+
+        // Obtiene el identificador de cliente y el progreso actual del mapa
+        val (clientId, progress) = progressMap[sessionId]!!
+
+        // Actualiza el progreso para el identificador de sesión en el mapa
+        if (message.payload.matches(Regex("^\\d+$"))) {
+            progressMap[sessionId] = Pair(clientId, message.payload.toInt())
+        }
+
+    }
+
+
 }
+
+
+
+
+
 

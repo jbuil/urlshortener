@@ -24,8 +24,7 @@ import kotlin.collections.List
 
 interface FileController {
   // fun index(): String
-  fun uploadFile(@RequestParam("file") file: MultipartFile
-  ): ResponseEntity<ByteArray>
+    fun uploadFile(@RequestParam("file") file: MultipartFile): ResponseEntity<ByteArray>
     fun status(): String
     fun upload(request: HttpServletRequest) : String
     fun download():String
@@ -43,23 +42,38 @@ class FileControllerImpl (
         return "upload"
     }
 
+
+    val progressMap: MutableMap<String, Int> = mutableMapOf()
     @PostMapping("/api/bulk")
-    override fun uploadFile(@RequestParam("file") file: MultipartFile
-    ): ResponseEntity<ByteArray> {
+    override fun uploadFile(@RequestParam("file") file: MultipartFile): ResponseEntity<ByteArray> {
+        // Crear una nueva sesión de WebSocket para el cliente especificado
+        val session = webSocketService.createSession("clientId")
 
+        // Enviar un mensaje de inicio a través de la sesión de WebSocket
+        session.sendMessage(TextMessage("Iniciando procesamiento del archivo "))
 
-        val session = webSocketService.createSession()
-        println("aqio")
         val csv = uploadFileService.saveFile(file) { progress ->
-            session.sendMessage(TextMessage(progress.toString()))
+            // Enviar un mensaje de progreso a través de la sesión de WebSocket
+            session.sendMessage(TextMessage("Progreso: $progress%"))
         }
+
+
+        // Enviar un mensaje de fin a través de la sesión de WebSocket
+        session.sendMessage(TextMessage("Procesamiento del archivo completado"))
+
+        // Cerrar la sesión de WebSocket
+        session.close()
+
         val headers = HttpHeaders()
         headers.contentType = MediaType("text", "csv")
-        if(csv.contentEquals(ByteArray(0))){
+        if(csv.contentEquals(ByteArray(0))) {
             return ResponseEntity(csv, headers, HttpStatus.OK)
         }
-        return ResponseEntity(csv, headers, HttpStatus.CREATED)
+        return ResponseEntity(csv, headers, HttpStatus.OK)
     }
+
+
+
 
 
 

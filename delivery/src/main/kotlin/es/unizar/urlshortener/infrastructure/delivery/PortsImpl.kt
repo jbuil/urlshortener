@@ -103,7 +103,6 @@ class RabbitMQServiceImpl(
         val queue = "safe"
         val message = "$url::$id"
         rabbitTemplate.convertAndSend("exchange", "safe", message)
-        println("Mensaje enviado: $message")
     }
 
 }
@@ -157,7 +156,7 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
         if (!file.isEmpty) {
             val inputStream = file.inputStream
             val reader = BufferedReader(InputStreamReader(inputStream))
-
+            var lastSentProgress = -1.0
             val csv = StringWriter()
             val writer = CSVWriter(csv)
             val totalLines = file.inputStream.bufferedReader().useLines { it.count() }
@@ -179,8 +178,16 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
                 }
                 line = reader.readLine()
                 lineCount++
-                // Enviar progreso a través de la función de devolución de llamada
-                progressCallback((lineCount / totalLines) * 100)
+                val progress = round((lineCount * 100.0) / totalLines, 0)
+                if ((progress != lastSentProgress) && ((progress.toInt() % 15) == 0)) {
+                    // Enviar progreso a través de la función de devolución de llamada
+                    progressCallback(progress.toInt())
+                    lastSentProgress = progress
+                }
+
+
+
+
             }
 
             writer.close()
@@ -192,17 +199,19 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
         }
     }
 
-
+    fun round(value: Double, decimals: Int): Double {
+        val factor = Math.pow(10.0, decimals.toDouble())
+        return Math.round(value * factor) / factor
+    }
 
 
 
 }
 class WebSocketServiceImpl(private val client: StandardWebSocketClient) : WebSocketService {
-    override fun createSession(): WebSocketSession {
-        val uri = URI("ws://localhost:8080/prueba")
+    override fun createSession(clientId: String): WebSocketSession {
+        val uri = "ws://localhost:8080/ws"
         val handler = TextWebSocketHandler()
-        print("Se crea una sesion")
-        return client.doHandshake(handler, uri.toString()).get()
+        return client.doHandshake(handler, uri).get()
     }
 }
 

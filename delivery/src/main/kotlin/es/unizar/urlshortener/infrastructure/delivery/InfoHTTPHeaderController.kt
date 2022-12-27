@@ -64,7 +64,6 @@ class InfoHTTPHeaderControllerImpl (
             }
 
             val let = infoHTTPHeaderUseCase.getInfo(id).let {
-                println("entra")
                 var response: ArrayList<ClickOut> = ArrayList<ClickOut>()
                 if (it != null) {
                     for (i in it) {
