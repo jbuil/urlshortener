@@ -4,8 +4,6 @@ import GenerateQRUseCase
 import com.google.common.net.HttpHeaders.*
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
-import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl.Companion.baseURI
-import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl.Companion.qrEndpoint
 import kotlinx.coroutines.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -45,6 +43,9 @@ class UrlShortenerControllerTest {
 
     @MockBean
     private lateinit var generateQRUseCase: GenerateQRUseCase
+
+    @MockBean
+    private lateinit var retrieveQRUseCase: RetrieveQRUseCase
 
     @MockBean
     private lateinit var shortUrlRepository: ShortUrlRepositoryService
@@ -105,7 +106,7 @@ class UrlShortenerControllerTest {
 
     @Test
     fun `creates with qr returns a basic redirect if it can compute a hash`() {
-        val qr = baseURI + "f684a3c4" + qrEndpoint
+        val qr = "http://localhost:8080/f684a3c4/qr"
         given(
             createShortUrlUseCase.create(
                 url = "http://example.com/",
@@ -147,15 +148,28 @@ class UrlShortenerControllerTest {
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.statusCode").value(400))
     }
-    @Suppress
     @Test
     fun `generateQR returns a qr code when the key exists`() {
+        given(
+            retrieveQRUseCase.retrieveQR("f684a3c4", cacheManager)
+        ).willAnswer { "test".toByteArray() }
 
+        val result = mockMvc.perform(get("/f684a3c4/qr"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(content().contentType(MediaType.IMAGE_PNG))
+
+        val content = result.andReturn().response.contentAsByteArray
+        assertTrue("test".toByteArray().contentEquals(content))
     }
 
     @Test
     fun `generateQR returns a not found when the key does not exist`() {
-        mockMvc.perform(get("/{hash}/qr", "key"))
+        given(
+            retrieveQRUseCase.retrieveQR("random", cacheManager)
+        ).willAnswer { throw QrUriNotFound("random") }
+
+        mockMvc.perform(get("/{hash}/qr", "random"))
             .andDo(print())
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.statusCode").value(404))

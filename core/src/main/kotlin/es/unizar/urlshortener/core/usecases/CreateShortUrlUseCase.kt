@@ -1,6 +1,7 @@
 package es.unizar.urlshortener.core.usecases
 
 import es.unizar.urlshortener.core.*
+import org.springframework.beans.factory.annotation.*
 
 /**
  * Given an url returns the key that is used to create a short URL.
@@ -21,6 +22,10 @@ class CreateShortUrlUseCaseImpl(
     private val hashService: HashService,
     private val rabbitMQService: RabbitMQService
 ) : CreateShortUrlUseCase {
+    @Value("\${baseURI}")
+    lateinit var baseURI: String
+    @Value("\${qrEndpoint}")
+    lateinit var qrEndpoint: String
     override fun create(url: String, wantQR: Boolean, data: ShortUrlProperties): ShortUrl {
         if (!validatorService.isValid(url)) {
             throw InvalidUrlException(url)
@@ -42,11 +47,5 @@ class CreateShortUrlUseCaseImpl(
         // Return the shortened URL
         return su
     }
-
-    companion object {
-        const val baseURI = "http://localhost:8080/"
-        const val qrEndpoint  = "/qr"
-    }
-
     private fun assignQR(hash: String): String = baseURI + hash + qrEndpoint
 }

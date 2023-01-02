@@ -45,10 +45,15 @@ subprojects {
 }
 
 project(":core") {
+    apply(plugin = "org.jetbrains.kotlin.plugin.spring")
+    apply(plugin = "org.springframework.boot")
+    apply(plugin = "io.spring.dependency-management")
     dependencies {
        "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
        "implementation"("org.springframework:spring-core:5.3.22")
         "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
+        "implementation"("org.springframework:spring-beans:5.3.18")
+        "implementation"("org.springframework.boot:spring-boot-starter-cache")
     }
 }
 

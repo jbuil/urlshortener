@@ -125,6 +125,7 @@ class HttpRequestTest {
 
         val data: MultiValueMap<String, String> = LinkedMultiValueMap()
         data["url"] = "ftp://example.com/"
+        data["wantQR"] = "No"
 
         val response = restTemplate.postForEntity(
             "http://localhost:$port/api/link",
@@ -143,6 +144,7 @@ class HttpRequestTest {
 
         val data: MultiValueMap<String, String> = LinkedMultiValueMap()
         data["url"] = url
+        data["wantQR"] = "No"
 
         return restTemplate.postForEntity(
             "http://localhost:$port/api/link",
