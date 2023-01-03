@@ -8,6 +8,8 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.messaging.handler.annotation.MessageMapping
+import org.springframework.messaging.simp.annotation.SendToUser
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
@@ -41,6 +43,13 @@ class FileControllerImpl (
     override  fun upload( request: HttpServletRequest) : String {
         return "upload"
     }
+    @MessageMapping("/sendMessage")
+    @SendToUser("/queue/specific-user")
+    fun sendMessage(session: WebSocketSession, message: String): String {
+    // Enviar mensaje a través de la sesión de WebSocket del usuario específico
+        session.sendMessage(TextMessage(message))
+        return message
+    }
 
 
     val progressMap: MutableMap<String, Int> = mutableMapOf()
@@ -62,7 +71,7 @@ class FileControllerImpl (
         session.sendMessage(TextMessage("Procesamiento del archivo completado"))
 
         // Cerrar la sesión de WebSocket
-        session.close()
+
 
         val headers = HttpHeaders()
         headers.contentType = MediaType("text", "csv")

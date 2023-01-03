@@ -10,7 +10,6 @@ import es.unizar.urlshortener.infrastructure.repositories.ClickEntityRepository
 import es.unizar.urlshortener.infrastructure.repositories.ClickRepositoryServiceImpl
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlEntityRepository
 import es.unizar.urlshortener.infrastructure.repositories.ShortUrlRepositoryServiceImpl
-import kotlinx.coroutines.NonCancellable.message
 import org.springframework.amqp.core.Binding
 import org.springframework.amqp.core.BindingBuilder
 import org.springframework.amqp.core.Queue
@@ -131,35 +130,57 @@ class MyWebSocketHandler : TextWebSocketHandler() {
     // Mapa que almacena el progreso y el identificador de cliente de cada sesión
     val progressMap = mutableMapOf<String, Pair<String, Int>>()
     val sessions = mutableListOf<WebSocketSession>()
+    val clientSessions = mutableMapOf<String, WebSocketSession>()
+
     override fun afterConnectionEstablished(session: WebSocketSession) {
         // Genera un identificador único para la sesión
-        val sessionId = UUID.randomUUID().toString()
-
+        val sessionId = session.id
         sessions.add(session)
         // Establece el identificador como un atributo de sesión
-        session.attributes["sessionId"] = sessionId
+        // session.attributes["sessionId"] = sessionId
 
+        clientSessions[sessionId] = session
         // Obtiene el identificador de cliente del atributo de sesión
-        val clientId = session.attributes["clientId"] as String
+        //val clientId = session.attributes["sessionId"] as? String ?: return
 
         // Agrega una nueva entrada al mapa para el identificador de sesión y el identificador de cliente
-        progressMap[sessionId] = Pair(clientId, 0)
+        //progressMap[sessionId] = Pair(clientId, 0)
 
-        println(session.attributes["sessionId"])
     }
+    private fun sendMessageToClient(clientId: String, message: TextMessage) {
+        val session = clientSessions[clientId]
+        if (session != null) {
+            session.sendMessage(message)
+        }
+    }
+
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         // Obtiene el identificador de la sesión del atributo de sesión
-        val sessionId = session.attributes["sessionId"] as String
+        //val sessionId = session.attributes["sessionId"] as? String ?: return
+        //println(clientSessions[sessionId])
+        //clientSessions[sessionId]?.sendMessage(message)
+
+        val sessionId = session.id
+        for(sess in sessions){
+            println(sess.id)
+            sess.sendMessage(message)
+        }
+        sendMessageToClient(sessionId,message)
 
         // Obtiene el identificador de cliente y el progreso actual del mapa
-        val (clientId, progress) = progressMap[sessionId]!!
+        //val entry = progressMap[sessionId]
+        //if (entry == null) return
+        // val (clientId, progress) = entry
 
         // Actualiza el progreso para el identificador de sesión en el mapa
-        if (message.payload.matches(Regex("^\\d+$"))) {
-            progressMap[sessionId] = Pair(clientId, message.payload.toInt())
-        }
+        // if (message.payload.matches(Regex("^\\d+$"))) {
+        //     progressMap[sessionId] = Pair(clientId, message.payload.toInt())
+        // }
+
 
     }
+
+
 
 
 }

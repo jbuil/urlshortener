@@ -51,14 +51,6 @@
     <label>Progreso:</label>
     <progress id="progress-bar" value="0" max="100"></progress>
 </div>
-<script>
-    const ws = new WebSocket('ws://localhost:8080/ws');
-    ws.onmessage = function(event) {
-        console.log("mensaje recibido")
-        const progress = parseInt(event.data);
-        document.getElementById('progress-bar').value = progress;
-    }
-</script>
 
 
 
@@ -76,7 +68,6 @@
     // Cuando se abra la conexión de WebSocket, envía el atributo de sesión al servidor
     socket.onopen = function() {
         console.log('Conexión establecida');
-        socket.send(socket.clientId);
     }
 
     // Cuando se reciba un mensaje a través de la conexión de WebSocket, muestra el mensaje en la página HTML
