@@ -9,7 +9,6 @@ import kotlinx.coroutines.runBlocking
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import ru.chermenin.ua.UserAgent
 import java.time.OffsetDateTime
 import javax.servlet.http.HttpServletRequest
 
@@ -48,21 +47,25 @@ class InfoHTTPHeaderControllerImpl (
 ) : InfoHTPPHeaderController {
 
 
+    fun verifyUrlSafety(url: ShortUrl?, id: String) {
+        if (url != null) {
+            if(url.properties.safe == null){
+                throw UrlNotVerified(id)
+            } else {
+                if( !url.properties.safe!!){
+                    throw UrlNotSafe(id)
+                }
+            }
+        }
+    }
 
     @GetMapping("/api/link/{id}")
     override fun getInfo(@PathVariable id: String,request: HttpServletRequest): ResponseEntity<ArrayList<ClickOut>> {
         return runBlocking {
             val url: ShortUrl? = infoHTTPHeaderUseCase.getInfoUrl(id)
             if (url != null) {
-                if(url.properties.safe == null){
-                    throw UrlNotVerified(id)
-                } else {
-                    if( !url.properties.safe!!){
-                        throw UrlNotSafe(id)
-                    }
-                }
+                verifyUrlSafety(url,id)
             }
-
             val let = infoHTTPHeaderUseCase.getInfo(id).let {
                 println("entra")
                 var response: ArrayList<ClickOut> = ArrayList<ClickOut>()

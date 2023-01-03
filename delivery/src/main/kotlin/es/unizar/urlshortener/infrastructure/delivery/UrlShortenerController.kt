@@ -90,18 +90,16 @@ class UrlShortenerControllerImpl(
             val shortUrl = shortUrlRepository.findByKey(id)
             // Si el campo safe del objeto ShortUrl no tiene un valor, devolver una respuesta HTTP con código 503
             // y encabezado Retry-After configurado con el tiempo en el que se espera que el campo safe tenga un valor
+            val h= HttpHeaders()
             if (shortUrl != null) {
+                shortUrl.properties?.let { it1 -> println(it1.safe) }
                 if (shortUrl.properties.safe == null) {
                     throw UrlNotVerified(id)
-                }
-            }
-            val h = HttpHeaders()
-            shortUrl?.properties?.let { it1 -> println(it1.safe) }
-            if (shortUrl != null) {
-                if (shortUrl.properties.safe == false) {
+                } else if (shortUrl.properties.safe == false) {
                     throw UrlNotSafe(id)
                 }
             }
+
 
             h.location = URI.create(it.target)
 

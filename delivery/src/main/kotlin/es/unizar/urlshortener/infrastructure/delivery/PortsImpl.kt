@@ -12,6 +12,10 @@ import org.springframework.amqp.rabbit.annotation.*
 import org.springframework.amqp.rabbit.core.*
 import org.springframework.stereotype.*
 import org.springframework.web.multipart.*
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse
 import java.awt.*
 import java.awt.image.*
 import java.io.*
@@ -105,6 +109,27 @@ class RabbitMQServiceImpl(
 
 
 class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
+    private fun getSecret(): String {
+        val secretName = "googleAPIKey"
+        val region: Region = Region.of("us-east-1")
+
+        // Create a Secrets Manager client
+        val client: SecretsManagerClient = SecretsManagerClient.builder()
+            .region(region)
+            .build()
+        val getSecretValueRequest: GetSecretValueRequest = GetSecretValueRequest.builder()
+            .secretId(secretName)
+            .build()
+        val getSecretValueResponse: GetSecretValueResponse = try {
+            client.getSecretValue(getSecretValueRequest)
+        } catch (e: Exception) {
+            // For a list of exceptions thrown, see
+            // https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+            throw e
+        }
+
+        return getSecretValueResponse.secretString()
+    }
 
         override fun isSafe(url: String): Boolean {
             // create a JSON object
@@ -124,10 +149,10 @@ class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
             threatInfo["threatEntryTypes"] = arrayOf("URL")
             threatInfo["threatEntries"] = arrayOf(threatEntry)
             json["threatInfo"] = threatInfo
-
+            val apiKey = System.getenv("API_KEY")
             val httpClient = HttpClient.newBuilder().build()
             val request = HttpRequest.newBuilder()
-                .uri(URI.create("https://safebrowsing.googleapis.com/v4/threatMatches:find?key=AIzaSyAoDBzPEkXQiqmTtf7vXQp-vtPKXZwf3rU"))
+                .uri(URI.create("https://safebrowsing.googleapis.com/v4/threatMatches:find?key=$apiKey"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json.toString()))
                 .build()
@@ -144,8 +169,10 @@ interface UploadFileService{
     fun saveFile(file: MultipartFile): ByteArray
 }
 @Service
-class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUseCase,
-                            private val shortUrlRepository: ShortUrlRepositoryService) : UploadFileService {
+class UploadFileServiceImpl(
+    private val createShortUrlUseCase: CreateShortUrlUseCase,
+    private val shortUrlRepository: ShortUrlRepositoryService,
+) : UploadFileService {
     val uploadFolder: String = "..//files//"
 
     override fun saveFile(file: MultipartFile): ByteArray {

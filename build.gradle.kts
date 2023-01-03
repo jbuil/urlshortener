@@ -7,6 +7,7 @@ plugins {
     kotlin("jvm") version "1.7.10" apply false
     kotlin("plugin.spring") version "1.7.10" apply false
     kotlin("plugin.jpa") version "1.7.10" apply false
+    id ("org.sonarqube") version "3.5.0.2730"
 }
 
 group = "es.unizar"
@@ -17,9 +18,9 @@ var bootstrapVersion = "3.4.0"
 var jqueryVersion = "3.6.1"
 var guavaVersion = "31.1-jre"
 var commonsValidatorVersion = "1.6"
-var mockkVersion = "1.13.3"
 
 subprojects {
+    apply(plugin = "org.sonarqube")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -27,6 +28,7 @@ subprojects {
     }
     repositories {
         mavenCentral()
+
     }
     tasks.withType<KotlinCompile> {
         kotlinOptions {
@@ -43,17 +45,14 @@ subprojects {
 
     }
 }
-
 project(":core") {
-    apply(plugin = "org.jetbrains.kotlin.plugin.spring")
-    apply(plugin = "org.springframework.boot")
-    apply(plugin = "io.spring.dependency-management")
     dependencies {
-       "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
-       "implementation"("org.springframework:spring-core:5.3.22")
+        "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
+        "implementation"("org.springframework:spring-core:5.3.22")
         "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
-        "implementation"("org.springframework:spring-beans:5.3.18")
-        "implementation"("org.springframework.boot:spring-boot-starter-cache")
+        "implementation" ("org.springframework:spring-websocket:5.3.22")
+
+
     }
 }
 
@@ -98,9 +97,10 @@ project(":delivery") {
         "implementation"("org.springframework.boot:spring-boot-starter-thymeleaf")
         "testImplementation"( "org.jetbrains.kotlinx:kotlinx-coroutines-test:latest.release")
         "implementation"("org.springframework.boot:spring-boot-starter-cache")
+        "implementation" ("org.springframework.boot:spring-boot-starter-websocket")
         "implementation"("com.google.zxing:core:3.4.0")
-        "testImplementation"("io.mockk:mockk:${mockkVersion}")
-        "implementation"("org.springframework.boot:spring-boot-starter-webflux")
+        "implementation"("software.amazon.awssdk:secretsmanager:2.17.152")
+
     }
     tasks.getByName<BootJar>("bootJar") {
         enabled = false
@@ -123,7 +123,7 @@ project(":app") {
         "implementation"("org.webjars:jquery:$jqueryVersion")
         "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
         "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
-
+        "implementation" ("org.springframework.boot:spring-boot-starter-websocket")
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.springframework.boot:spring-boot-starter-web")
         "testImplementation"("org.springframework.boot:spring-boot-starter-jdbc")
