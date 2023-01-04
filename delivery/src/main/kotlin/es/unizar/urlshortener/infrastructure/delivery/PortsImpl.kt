@@ -12,10 +12,9 @@ import org.springframework.amqp.rabbit.annotation.*
 import org.springframework.amqp.rabbit.core.*
 import org.springframework.stereotype.*
 import org.springframework.web.multipart.*
-import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse
+import org.springframework.web.socket.WebSocketSession
+import org.springframework.web.socket.client.standard.StandardWebSocketClient
+import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.awt.*
 import java.awt.image.*
 import java.io.*
@@ -103,7 +102,7 @@ class RabbitMQServiceImpl(
         val queue = "safe"
         val message = "$url::$id"
         rabbitTemplate.convertAndSend("exchange", queue, message)
-    }
+        }
 
 }
 
@@ -166,7 +165,7 @@ class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
 interface UploadFileService{
 
 
-    fun saveFile(file: MultipartFile): ByteArray
+    fun saveFile(file: MultipartFile, progressCallback: (Int) -> Unit): ByteArray
 }
 @Service
 class UploadFileServiceImpl(
@@ -175,14 +174,15 @@ class UploadFileServiceImpl(
 ) : UploadFileService {
     val uploadFolder: String = "..//files//"
 
-    override fun saveFile(file: MultipartFile): ByteArray {
+    override fun saveFile(file: MultipartFile, progressCallback: (Int) -> Unit): ByteArray {
         if (!file.isEmpty) {
             val inputStream = file.inputStream
             val reader = BufferedReader(InputStreamReader(inputStream))
-
+            var lastSentProgress = -1.0
             val csv = StringWriter()
             val writer = CSVWriter(csv)
-
+            val totalLines = file.inputStream.bufferedReader().useLines { it.count() }
+            var lineCount = 0
             var line = reader.readLine()
             while (line != null) {
                 val items = line.split(',')
@@ -199,6 +199,17 @@ class UploadFileServiceImpl(
                     }
                 }
                 line = reader.readLine()
+                lineCount++
+                val progress = round((lineCount * 100.0) / totalLines, 0)
+                if ((progress != lastSentProgress) && ((progress.toInt() % 15) == 0)) {
+                    // Enviar progreso a través de la función de devolución de llamada
+                    progressCallback(progress.toInt())
+                    lastSentProgress = progress
+                }
+
+
+
+
             }
 
             writer.close()
@@ -208,6 +219,22 @@ class UploadFileServiceImpl(
         } else {
             return ByteArray(0)
         }
+    }
+
+    fun round(value: Double, decimals: Int): Double {
+        val factor = Math.pow(10.0, decimals.toDouble())
+        return Math.round(value * factor) / factor
+    }
+
+
+
+}
+class WebSocketServiceImpl(private val client: StandardWebSocketClient) : WebSocketService {
+    private val sessions = mutableMapOf<String, WebSocketSession>()
+    override fun createSession(parameter: String): WebSocketSession {
+        val id = GlobalParameterHolder.getParameter()
+        val session = client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
+        return session
     }
 
 }

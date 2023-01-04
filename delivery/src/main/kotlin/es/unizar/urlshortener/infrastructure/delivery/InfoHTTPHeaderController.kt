@@ -67,7 +67,6 @@ class InfoHTTPHeaderControllerImpl (
                 verifyUrlSafety(url,id)
             }
             val let = infoHTTPHeaderUseCase.getInfo(id).let {
-                println("entra")
                 var response: ArrayList<ClickOut> = ArrayList<ClickOut>()
                 if (it != null) {
                     for (i in it) {

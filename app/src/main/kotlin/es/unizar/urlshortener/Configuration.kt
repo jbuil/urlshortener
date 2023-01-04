@@ -16,6 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.web.socket.TextMessage
+import org.springframework.web.socket.WebSocketSession
+import org.springframework.web.socket.client.standard.StandardWebSocketClient
+import org.springframework.web.socket.config.annotation.*
+import org.springframework.web.socket.handler.TextWebSocketHandler
+import java.util.*
 
 
 /**
@@ -23,14 +29,22 @@ import org.springframework.context.annotation.Configuration
  *
  * **Note**: Spring Boot is able to discover this [Configuration] without further configuration.
  */
+@EnableWebSocket
 @Configuration
 class ApplicationConfiguration(
     @Autowired val shortUrlEntityRepository: ShortUrlEntityRepository,
     @Autowired val clickEntityRepository: ClickEntityRepository,
     @Autowired val rabbitTemplate: RabbitTemplate,
 
-
     ) {
+
+
+
+
+    @Bean
+    fun standardWebSocketClient(): StandardWebSocketClient {
+        return StandardWebSocketClient()
+    }
     @Bean
     fun clickRepositoryService() = ClickRepositoryServiceImpl(clickEntityRepository)
 
@@ -80,6 +94,8 @@ class ApplicationConfiguration(
     fun logClickUseCase() = LogClickUseCaseImpl(clickRepositoryService())
 
 
+    @Bean
+    fun webSocketService() = WebSocketServiceImpl(standardWebSocketClient())
 
     @Bean
     fun googleSafeBrowsing() = GoogleSafeBrowsingServiceImpl()
@@ -98,4 +114,40 @@ class ApplicationConfiguration(
     @Bean
     fun infoHTTPHeaderUserCase() = InfoHTTPHeaderCaseImpl(clickRepositoryService(),shortUrlRepositoryService())
 
+
+
 }
+@Configuration
+@EnableWebSocket
+class WebSocketConfiguration : WebSocketConfigurer {
+
+    override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
+        registry.addHandler(MyWebSocketHandler(), "/ws").setAllowedOrigins("*")
+    }
+}
+
+class MyWebSocketHandler : TextWebSocketHandler() {
+
+    private val clientSessions = mutableMapOf<String, WebSocketSession>()
+    override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
+        val payload = message.payload
+        if (payload.startsWith("clientId:")) {
+            val clientIdJs = payload.split(":")[1]
+            // Agrega el identificador de cliente al mapa de sesiones
+            clientSessions[clientIdJs] = session
+            return
+        }
+        val (body, clientId) = message.payload.split(":")
+        clientSessions[clientId.trim()]?.sendMessage(TextMessage(body))
+
+
+    }
+}
+
+
+
+
+
+
+
+
