@@ -2,6 +2,21 @@ package es.unizar.urlshortener.core
 
 import org.springframework.web.socket.WebSocketSession
 
+class GlobalParameterHolder {
+    companion object {
+        private var parameter: String? = null
+
+        fun setParameter(value: String) {
+            parameter = value
+        }
+
+        fun getParameter(): String? {
+            return parameter
+        }
+    }
+}
+
+
 /**
  * [ClickRepositoryService] is the port to the repository that provides persistence to [Clicks][Click].
  */
@@ -71,6 +86,6 @@ interface GoogleSafeBrowsingService{
     fun isSafe(url: String): Boolean
 }
 interface WebSocketService{
-    fun createSession(clientId: String): WebSocketSession
+    fun createSession(parameter: String): WebSocketSession
 }
 

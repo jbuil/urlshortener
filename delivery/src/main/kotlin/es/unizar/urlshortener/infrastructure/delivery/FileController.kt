@@ -26,7 +26,7 @@ import kotlin.collections.List
 
 interface FileController {
   // fun index(): String
-    fun uploadFile(@RequestParam("file") file: MultipartFile): ResponseEntity<ByteArray>
+    fun uploadFile(@RequestParam("file") file: MultipartFile,clientId: String): ResponseEntity<ByteArray>
     fun status(): String
     fun upload(request: HttpServletRequest) : String
     fun download():String
@@ -54,21 +54,19 @@ class FileControllerImpl (
 
     val progressMap: MutableMap<String, Int> = mutableMapOf()
     @PostMapping("/api/bulk")
-    override fun uploadFile(@RequestParam("file") file: MultipartFile): ResponseEntity<ByteArray> {
+    override fun uploadFile(@RequestParam("file") file: MultipartFile, clientId: String): ResponseEntity<ByteArray> {
         // Crear una nueva sesión de WebSocket para el cliente especificado
         val session = webSocketService.createSession("clientId")
 
         // Enviar un mensaje de inicio a través de la sesión de WebSocket
-        session.sendMessage(TextMessage("Iniciando procesamiento del archivo "))
+        session.sendMessage(TextMessage("Iniciando procesamiento del archivo del cliente: $clientId"))
 
         val csv = uploadFileService.saveFile(file) { progress ->
             // Enviar un mensaje de progreso a través de la sesión de WebSocket
-            session.sendMessage(TextMessage("Progreso: $progress%"))
+            session.sendMessage(TextMessage("Progreso de $progress% del cliente: $clientId"))
         }
-
-
         // Enviar un mensaje de fin a través de la sesión de WebSocket
-        session.sendMessage(TextMessage("Procesamiento del archivo completado"))
+        session.sendMessage(TextMessage("Procesamiento del archivo completado del cliente: $clientId"))
 
         // Cerrar la sesión de WebSocket
 

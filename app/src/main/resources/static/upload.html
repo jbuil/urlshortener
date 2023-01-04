@@ -60,14 +60,27 @@
 </div>
 
 <script>
+
+</script>
+
+
+<script>
+    // Variable para almacenar el contenido del archivo CSV
+
+    function generateId() {
+        return Math.random().toString(36).substr(2, 9);
+    }
+
+    const clientId = generateId();
     // Crea una conexión de WebSocket con tu servidor
     const socket = new WebSocket('ws://localhost:8080/ws');
     // Establece un atributo de sesión
-    socket.clientId = 'clientId';
+    socket.clientId = clientId;
 
     // Cuando se abra la conexión de WebSocket, envía el atributo de sesión al servidor
     socket.onopen = function() {
         console.log('Conexión establecida');
+        socket.send(`clientId:${clientId}`);
     }
 
     // Cuando se reciba un mensaje a través de la conexión de WebSocket, muestra el mensaje en la página HTML
@@ -83,11 +96,10 @@
     socket.onclose = function() {
         console.log('Conexión cerrada');
     };
-</script>
 
 
-<script>
-    // Variable para almacenar el contenido del archivo CSV
+
+
     let csvContent = '';
 
     // Manejador de eventos para el formulario de subida de archivos
@@ -100,6 +112,9 @@
         // Crear un objeto FormData
         const formData = new FormData();
         formData.append('file', file);
+        // Añadir el identificador único al objeto FormData
+        console.log(clientId)
+        formData.append('clientId', clientId);
         // Enviar la solicitud POST al endpoint
         fetch('/api/bulk', {
             method: 'POST',

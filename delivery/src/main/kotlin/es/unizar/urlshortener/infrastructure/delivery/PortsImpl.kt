@@ -148,8 +148,10 @@ interface UploadFileService{
     fun saveFile(file: MultipartFile, progressCallback: (Int) -> Unit): ByteArray
 }
 @Service
-class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUseCase,
-                            private val shortUrlRepository: ShortUrlRepositoryService) : UploadFileService {
+class UploadFileServiceImpl(
+    private val createShortUrlUseCase: CreateShortUrlUseCase,
+    private val shortUrlRepository: ShortUrlRepositoryService,
+) : UploadFileService {
     val uploadFolder: String = "..//files//"
 
     override fun saveFile(file: MultipartFile, progressCallback: (Int) -> Unit): ByteArray {
@@ -208,11 +210,13 @@ class UploadFileServiceImpl(private val createShortUrlUseCase: CreateShortUrlUse
 
 }
 class WebSocketServiceImpl(private val client: StandardWebSocketClient) : WebSocketService {
-    override fun createSession(clientId: String): WebSocketSession {
-        val uri = "ws://localhost:8080/ws"
-        val handler = TextWebSocketHandler()
-        return client.doHandshake(handler, uri).get()
+    private val sessions = mutableMapOf<String, WebSocketSession>()
+    override fun createSession(parameter: String): WebSocketSession {
+        val id = GlobalParameterHolder.getParameter()
+        val session = client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
+        return session
     }
+
 }
 
 

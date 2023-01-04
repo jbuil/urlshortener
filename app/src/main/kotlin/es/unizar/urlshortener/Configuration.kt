@@ -116,6 +116,7 @@ class ApplicationConfiguration(
     fun infoHTTPHeaderUserCase() = InfoHTTPHeaderCaseImpl(clickRepositoryService(),shortUrlRepositoryService())
 
 
+
 }
 @Configuration
 @EnableWebSocket
@@ -127,63 +128,24 @@ class WebSocketConfiguration : WebSocketConfigurer {
 }
 
 class MyWebSocketHandler : TextWebSocketHandler() {
-    // Mapa que almacena el progreso y el identificador de cliente de cada sesión
-    val progressMap = mutableMapOf<String, Pair<String, Int>>()
-    val sessions = mutableListOf<WebSocketSession>()
-    val clientSessions = mutableMapOf<String, WebSocketSession>()
 
-    override fun afterConnectionEstablished(session: WebSocketSession) {
-        // Genera un identificador único para la sesión
-        val sessionId = session.id
-        sessions.add(session)
-        // Establece el identificador como un atributo de sesión
-        // session.attributes["sessionId"] = sessionId
-
-        clientSessions[sessionId] = session
-        // Obtiene el identificador de cliente del atributo de sesión
-        //val clientId = session.attributes["sessionId"] as? String ?: return
-
-        // Agrega una nueva entrada al mapa para el identificador de sesión y el identificador de cliente
-        //progressMap[sessionId] = Pair(clientId, 0)
-
-    }
-    private fun sendMessageToClient(clientId: String, message: TextMessage) {
-        val session = clientSessions[clientId]
-        if (session != null) {
-            session.sendMessage(message)
-        }
-    }
-
+    private val clientSessions = mutableMapOf<String, WebSocketSession>()
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
-        // Obtiene el identificador de la sesión del atributo de sesión
-        //val sessionId = session.attributes["sessionId"] as? String ?: return
-        //println(clientSessions[sessionId])
-        //clientSessions[sessionId]?.sendMessage(message)
-
-        val sessionId = session.id
-        for(sess in sessions){
-            println(sess.id)
-            sess.sendMessage(message)
+        val payload = message.payload
+        if (payload.startsWith("clientId:")) {
+            val clientIdJs = payload.split(":")[1]
+            // Agrega el identificador de cliente al mapa de sesiones
+            clientSessions[clientIdJs] = session
+            return
         }
-        sendMessageToClient(sessionId,message)
-
-        // Obtiene el identificador de cliente y el progreso actual del mapa
-        //val entry = progressMap[sessionId]
-        //if (entry == null) return
-        // val (clientId, progress) = entry
-
-        // Actualiza el progreso para el identificador de sesión en el mapa
-        // if (message.payload.matches(Regex("^\\d+$"))) {
-        //     progressMap[sessionId] = Pair(clientId, message.payload.toInt())
-        // }
+        val (body, clientId) = message.payload.split(":")
+        clientSessions[clientId.trim()]?.sendMessage(TextMessage(body))
 
 
     }
-
-
-
-
 }
+
+
 
 
 
