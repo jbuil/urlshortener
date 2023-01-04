@@ -1,9 +1,7 @@
 package es.unizar.urlshortener.core.usecases
 
 import es.unizar.urlshortener.core.*
-import org.springframework.core.io.ByteArrayResource
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle;
+
 
 /**
  * Given a key returns a [Redirection] that contains a [URI target][Redirection.target]

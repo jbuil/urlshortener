@@ -7,6 +7,7 @@ plugins {
     kotlin("jvm") version "1.7.10" apply false
     kotlin("plugin.spring") version "1.7.10" apply false
     kotlin("plugin.jpa") version "1.7.10" apply false
+    id ("org.sonarqube") version "3.5.0.2730"
 }
 
 group = "es.unizar"
@@ -19,6 +20,7 @@ var guavaVersion = "31.1-jre"
 var commonsValidatorVersion = "1.6"
 
 subprojects {
+    apply(plugin = "org.sonarqube")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -26,6 +28,7 @@ subprojects {
     }
     repositories {
         mavenCentral()
+
     }
     tasks.withType<KotlinCompile> {
         kotlinOptions {
@@ -42,11 +45,10 @@ subprojects {
 
     }
 }
-
 project(":core") {
     dependencies {
-       "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
-       "implementation"("org.springframework:spring-core:5.3.22")
+        "implementation"("io.github.g0dkar:qrcode-kotlin-jvm:3.2.0")
+        "implementation"("org.springframework:spring-core:5.3.22")
         "implementation"("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:latest.release")
         "implementation" ("org.springframework:spring-websocket:5.3.22")
 
@@ -97,6 +99,8 @@ project(":delivery") {
         "implementation"("org.springframework.boot:spring-boot-starter-cache")
         "implementation" ("org.springframework.boot:spring-boot-starter-websocket")
         "implementation"("com.google.zxing:core:3.4.0")
+        "implementation"("software.amazon.awssdk:secretsmanager:2.17.152")
+
     }
     tasks.getByName<BootJar>("bootJar") {
         enabled = false

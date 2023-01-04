@@ -1,9 +1,10 @@
 package es.unizar.urlshortener.infrastructure.delivery
-
 import es.unizar.urlshortener.core.WebSocketService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.FileSystemResource
 import org.springframework.hateoas.server.mvc.linkTo
+
+import es.unizar.urlshortener.core.*
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -21,11 +22,9 @@ import java.io.IOException
 import java.net.URI
 import java.util.*
 import javax.servlet.http.HttpServletRequest
-import kotlin.collections.List
 
 
 interface FileController {
-  // fun index(): String
     fun uploadFile(@RequestParam("file") file: MultipartFile,clientId: String): ResponseEntity<ByteArray>
     fun status(): String
     fun upload(request: HttpServletRequest) : String

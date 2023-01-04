@@ -167,6 +167,11 @@ paths:
           schema:
             type: object
             $ref: '#/definitions/Error403'
+        "404":
+          description: Trimmed URI doesn't exist or was trimmed without wanting a QR code
+          schema:
+            type: object
+            $ref: '#/definitions/ErrorQRNotFound'
 definitions:
   shorturl:
     properties:
@@ -229,6 +234,20 @@ definitions:
         type: string
         description: "Description of the error"
         example: "URI is not safe"
+      timestamp:
+        type: string
+        description: "Timestamp of the request"
+        example: "2022-12-19T23:58:57.70665+01:00"
+  ErrorQRNotFound:
+    properties:
+      statusCode:
+        type: integer
+        description: "Protocol status code"
+        example: "404"
+      message:
+        type: string
+        description: "Description of the error"
+        example: "Destination URI doesn't exist"
       timestamp:
         type: string
         description: "Timestamp of the request"
