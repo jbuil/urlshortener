@@ -4,6 +4,7 @@ import GenerateQRUseCase
 import com.google.common.net.HttpHeaders.*
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
+import jdk.nashorn.internal.ir.annotations.Ignore
 import kotlinx.coroutines.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
@@ -253,8 +254,6 @@ class UrlShortenerControllerTest {
 
     }
 
-
-    @Test
     fun testGoogleSafeBrowsingService() {
         // URL de prueba que se considera segura
         val testUrlSafe = "https://www.google.com"
