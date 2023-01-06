@@ -7,46 +7,46 @@
   },
   "paths": {
   "/{id:(?!api|index).*}": {
-  "operationId": "redirectTo",
-  "description": "Redirects to the target URL of the given short URL",
-  "parameters": [
-    {
-      "name": "id",
-      "in": "path",
-      "required": true,
-      "schema": {
-        "type": "string"
-      }
-    }
-  ],
-  "responses": {
-    "302": {
-      "description": "Redirection to the target URL",
-      "headers": {
-        "Location": {
-          "description": "The target URL",
-          "schema": {
-            "type": "string"
-          }
+    "operationId": "redirectTo",
+    "description": "Redirects to the target URL of the given short URL",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
         }
       }
-    },
-    "503": {
-      "description": "The URL has not been verified yet",
-      "headers": {
-        "Retry-After": {
-          "description": "The time when the URL is expected to be verified",
-          "schema": {
-            "type": "string"
+    ],
+    "responses": {
+      "302": {
+        "description": "Redirection to the target URL",
+        "headers": {
+          "Location": {
+            "description": "The target URL",
+            "schema": {
+              "type": "string"
+            }
           }
         }
+      },
+      "503": {
+        "description": "The URL has not been verified yet",
+        "headers": {
+          "Retry-After": {
+            "description": "The time when the URL is expected to be verified",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "The URL is not safe"
       }
-    },
-    "403": {
-      "description": "The URL is not safe"
     }
-  }
-},
+  },
     "/api/link": {
         "method": "POST",
         "operationId": "shortener",
@@ -99,6 +99,51 @@
             }
           }
         }
+      },
+    "/api/bulk": {
+      "method": "POST",
+      "operationId": "csv",
+      "description": "Creates a CSV file with shortened URLs for the given original URLs CSV file",
+      "consumes": [
+        "multipart/form-data"
+      ],
+      "parameters": [
+        {
+          "name": "file",
+          "in": "body",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "CSV file created",
+          "headers": {
+            "Location": {
+              "description": "First URL",
+              "schema": {
+                "type": "string"
+              }
+            },
+            "content" : "text/csv"
+          }
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            }
+          }
+        }
       }
     }
+  }
 }
