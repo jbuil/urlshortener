@@ -15,10 +15,6 @@ import org.springframework.web.multipart.*
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.client.standard.StandardWebSocketClient
 import org.springframework.web.socket.handler.TextWebSocketHandler
-import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse
 import java.awt.*
 import java.awt.image.*
 import java.io.*
@@ -91,15 +87,7 @@ class RabbitMQServiceImpl(
     @RabbitListener(queues = ["safe"])
     override fun read(message: String) {
         val (url,hash) = message.split("::")
-        // Condición para la demo, url not verified
-        if(i == 0 && url == "http://www.unizar.es"){
-            i++
-        }
-        else{
-            shortUrlRepository.updateSafe(hash, GoogleSafeBrowsingServiceImpl().isSafe(url))
-        }
-
-
+        shortUrlRepository.updateSafe(hash, GoogleSafeBrowsingServiceImpl().isSafe(url))
     }
     override fun write(url: String, id: String) {
         // Envía un mensaje a la cola
@@ -112,28 +100,6 @@ class RabbitMQServiceImpl(
 
 
 class GoogleSafeBrowsingServiceImpl: GoogleSafeBrowsingService{
-    private fun getSecret(): String {
-        val secretName = "googleAPIKey"
-        val region: Region = Region.of("us-east-1")
-
-        // Create a Secrets Manager client
-        val client: SecretsManagerClient = SecretsManagerClient.builder()
-            .region(region)
-            .build()
-        val getSecretValueRequest: GetSecretValueRequest = GetSecretValueRequest.builder()
-            .secretId(secretName)
-            .build()
-        val getSecretValueResponse: GetSecretValueResponse = try {
-            client.getSecretValue(getSecretValueRequest)
-        } catch (e: Exception) {
-            // For a list of exceptions thrown, see
-            // https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-            throw e
-        }
-
-        return getSecretValueResponse.secretString()
-    }
-
         override fun isSafe(url: String): Boolean {
             // create a JSON object
             val json = JSONObject()
