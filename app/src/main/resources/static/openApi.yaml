@@ -64,6 +64,36 @@ paths:
           schema:
             type: object
             $ref: '#/definitions/Error400'
+  /api/bulk:
+    post:
+      operationId: csv
+      summary: Creates a CSV file
+      description: Creates a CSV file with shortened URLs for the given original URLs CSV file
+      parameters:
+        - name: file
+          in: body
+          description: The CSV file to short
+          Content-Type: multipart/form-data
+          schema:
+            type: object
+            required:
+              - file
+            properties:
+              file:
+                type: MultipartFile
+                example: file.csv
+      responses:
+        "201":
+          description: CSV successfully created
+          headers:
+            Location:
+              type: string
+              description: First absolute URI
+              example: https://www.google.com
+            Content-Type:
+              type: string
+              enum:
+                - text/csv
   /api/link/{id}:
     get:
       operationId: getlink
