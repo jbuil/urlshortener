@@ -17,8 +17,10 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
+import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
+import java.io.InputStreamReader
 import java.net.URI
 import java.util.*
 import javax.servlet.http.HttpServletRequest
@@ -72,10 +74,13 @@ class FileControllerImpl (
 
         val headers = HttpHeaders()
         headers.contentType = MediaType("text", "csv")
+        val inputStream = file.inputStream
+        val reader = BufferedReader(InputStreamReader(inputStream))
+        headers.location = URI.create(reader.readLine().split(',')[0])
         if(csv.contentEquals(ByteArray(0))) {
-            return ResponseEntity(csv, headers, HttpStatus.OK)
+            return ResponseEntity(csv, headers, HttpStatus.CREATED)
         }
-        return ResponseEntity(csv, headers, HttpStatus.OK)
+        return ResponseEntity(csv, headers, HttpStatus.CREATED)
     }
 
 

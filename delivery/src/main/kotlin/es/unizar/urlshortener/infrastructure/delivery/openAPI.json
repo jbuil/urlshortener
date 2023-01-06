@@ -100,5 +100,37 @@
           }
         }
       }
+    },
+    "/api/bulk": {
+      "method": "POST",
+      "operationId": "csv",
+      "description": "Creates a csv file with shortened urls for the given original URLs csv file",
+      "consumes": [
+        "multipart/form-data"
+      ],
+      "parameters": [
+        {
+          "name": "file",
+          "in": "body",
+          "required": true,
+          "schema": {
+            "type": "file",
+            "properties": {
+            }
+          }
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "CSV file created",
+          "headers": {
+            "Location": {
+              "description": "The first short URL"
+
+            },
+            "Content-Type": "text/csv"
+          }
+        }
+      }
     }
 }
