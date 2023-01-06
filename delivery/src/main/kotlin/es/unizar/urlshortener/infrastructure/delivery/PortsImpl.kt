@@ -140,9 +140,7 @@ interface UploadFileService{
 @Service
 class UploadFileServiceImpl(
     private val createShortUrlUseCase: CreateShortUrlUseCase,
-    private val shortUrlRepository: ShortUrlRepositoryService,
 ) : UploadFileService {
-    val uploadFolder: String = "..//files//"
 
     override fun saveFile(file: MultipartFile, progressCallback: (Int) -> Unit): ByteArray {
         if (!file.isEmpty) {

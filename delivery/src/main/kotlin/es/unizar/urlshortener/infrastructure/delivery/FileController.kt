@@ -42,9 +42,6 @@ class FileControllerImpl (
         // Enviar un mensaje de fin a través de la sesión de WebSocket
         session.sendMessage(TextMessage("Procesamiento del archivo completado del cliente: $clientId"))
 
-        // Cerrar la sesión de WebSocket
-
-
         val headers = HttpHeaders()
         headers.contentType = MediaType("text", "csv")
         val inputStream = file.inputStream

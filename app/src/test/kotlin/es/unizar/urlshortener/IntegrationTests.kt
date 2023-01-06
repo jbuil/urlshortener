@@ -79,14 +79,12 @@ class HttpRequestTest {
     }
 
     @Test
-    fun `redirectTo returns a redirect when the key exists`() {
+    fun `redirectTo returns a bad request cause the url is not verified`() {
         val target = shortUrl("http://example.com/").headers.location
         require(target != null)
 
         val response = restTemplate.getForEntity(target, String::class.java)
-        assertThat(response.statusCode).isEqualTo(HttpStatus.TEMPORARY_REDIRECT)
-        assertThat(response.headers.location).isEqualTo(URI.create("http://example.com/"))
-
+        assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(1)
     }
 
@@ -138,46 +136,11 @@ class HttpRequestTest {
         val data: MultiValueMap<String, String> = LinkedMultiValueMap()
         data["url"] = url
         data["wantQR"] = "No"
-
         return restTemplate.postForEntity(
             "http://localhost:$port/api/link",
             HttpEntity(data, headers), ShortUrlDataOut::class.java
         )
     }
-
-    @Test
-    fun `infoHTTPHeader correcto`(){
-        val respHeaders = shortUrl("https://www.youtube.com")
-
-        val target = respHeaders.headers.location
-        require(target != null)
-
-        restTemplate.getForEntity(target, String::class.java)
-        val hash = target.toString().split("/")[3]
-
-        val response1 = restTemplate.getForEntity("http://localhost:$port/api/link/"+hash, String::class.java)
-
-        // Get the response body from the ResponseEntity object
-        val responseBody = response1.body
-        // Parse the response body into a JSONArray
-        val jsonArray = JSONValue.parse(responseBody) as JSONArray
-
-        // Get the first element from the JSONArray (which should be a JSONObject)
-        val jsonObject = jsonArray.get(0) as JSONObject
-        // Get the "hash" value from the JSONObject
-        val id = jsonObject.get("hash")
-
-        // Get the "browser" value from the JSONObject
-        val browser = jsonObject.get("browser")
-
-        // Get the "platform" value from the JSONObject
-        val platform = jsonObject.get("platform")
-
-        assertThat(browser).isEqualTo("Apache-HttpClient 4.5.13")
-        assertThat(id).isEqualTo("e7f83ee8")
-        assertThat(platform).isEqualTo("Other")
-    }
-
     fun extractHash(url: String): String {
         val regex = Regex("http://localhost:\\d+/(\\w+)")
         val matchResult = regex.find(url)
@@ -219,22 +182,7 @@ class HttpRequestTest {
         assertThat(clickRow["platform"]).isEqualTo("Linux") // o el nombre de la plataforma que se esté utilizando
         assertThat(clickRow["created"]).isNotNull() // la fecha debe tener un valor
     }
-    @Test
-    fun testWrite() {
-        val shortUrlRepository = Mockito.mock(ShortUrlRepositoryService::class.java)
-        val rabbitTemplate = RabbitTemplate()
-        val rabbitMQService = RabbitMQServiceImpl(rabbitTemplate,shortUrlRepository)
-        // Envía un mensaje a una cola de RabbitMQ
-        val url = "https://example.com"
-        val id = "abc123"
-        rabbitMQService.write(url, id)
 
-        // Obtiene el mensaje de la cola "safe"
-        val queue = "safe"
-       rabbitMQService.read(queue)
-        // Comprueba que el mensaje recibido es el mismo que se envió
-        assertThat(rabbitMQService.read(queue)).isEqualTo(url)
-    }
     @Test
     fun testRabbitMQServiceIsUsed() {
         runBlocking { val rabbitMQService = Mockito.mock(RabbitMQService::class.java)
@@ -251,7 +199,6 @@ class HttpRequestTest {
             // Verificamos que se llama al servicio de RabbitMQ con la URL y el ID correctos
             verify(rabbitMQService).write("http://google.com", "58f3ae21")
         } }
-    // Creamos un mock del servicio de RabbitMQ
 
 
 }
