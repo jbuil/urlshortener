@@ -236,7 +236,6 @@ class UploadFileServiceImpl(
 class WebSocketServiceImpl(private val client: StandardWebSocketClient) : WebSocketService {
     private val sessions = mutableMapOf<String, WebSocketSession>()
     override fun createSession(parameter: String): WebSocketSession {
-        val id = GlobalParameterHolder.getParameter()
         val session = client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
         return session
     }

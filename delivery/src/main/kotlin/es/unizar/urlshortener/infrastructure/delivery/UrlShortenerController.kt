@@ -74,7 +74,7 @@ class UrlShortenerControllerImpl(
     val fileController: FileController,
     val cacheManager: CacheManager
 ) : UrlShortenerController {
-    @GetMapping("/{id:(?!api|docs|index|opeenApi.yaml|upload|ws|preuba).*}")
+    @GetMapping("/{id:(?!api|docs|index|openApi.yaml|upload|ws).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<ClickOut> =
         redirectUseCase.redirectTo(id).let {
             var userAgent: UserAgent? = null
@@ -92,7 +92,6 @@ class UrlShortenerControllerImpl(
             // y encabezado Retry-After configurado con el tiempo en el que se espera que el campo safe tenga un valor
             val h= HttpHeaders()
             if (shortUrl != null) {
-                shortUrl.properties?.let { it1 -> println(it1.safe) }
                 if (shortUrl.properties.safe == null) {
                     throw UrlNotVerified(id)
                 } else if (shortUrl.properties.safe == false) {

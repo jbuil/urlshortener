@@ -82,13 +82,6 @@ class HttpRequestTest {
     fun `redirectTo returns a redirect when the key exists`() {
         val target = shortUrl("http://example.com/").headers.location
         require(target != null)
-        //val sql = "SELECT hash FROM shorturl"
-        val sql = "SELECT * FROM shorturl"
-        val resultList = jdbcTemplate.queryForList(sql, ShortUrl::class.java)
-        //val resultList = jdbcTemplate.queryForList(sql, String::class.java)
-        if (resultList.isNotEmpty()) {
-            resultList.forEach { println(it.toString()) }
-        }
 
         val response = restTemplate.getForEntity(target, String::class.java)
         assertThat(response.statusCode).isEqualTo(HttpStatus.TEMPORARY_REDIRECT)
@@ -271,8 +264,8 @@ class HttpRequestTest {
         val connection = factory.newConnection()
         val channel = connection.createChannel()
 
-        // Obtiene el mensaje de la cola "queue"
-        val queue = "queue"
+        // Obtiene el mensaje de la cola "safe"
+        val queue = "safe"
         val consumer = object : DefaultConsumer(channel) {
             override fun handleDelivery(consumerTag: String, envelope: Envelope,
                                         properties: AMQP.BasicProperties, body: ByteArray) {
@@ -290,9 +283,7 @@ class HttpRequestTest {
         val rabbitMQService = RabbitMQServiceImpl(rabbitTemplate,shortUrlRepository)
 
         // Envía un mensaje de prueba a la cola "queue"
-        rabbitMQService.write("Hello, world!", "queue")
-
-        // Comprueba si el mensaje ha sido escrito correctamente en la cola
+        rabbitMQService.write("Hello, world!", "safe")
         //assertTrue(rabbitMQService.read())
     }
 

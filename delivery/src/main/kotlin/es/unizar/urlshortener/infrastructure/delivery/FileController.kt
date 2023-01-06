@@ -28,9 +28,6 @@ import javax.servlet.http.HttpServletRequest
 
 interface FileController {
     fun uploadFile(@RequestParam("file") file: MultipartFile,clientId: String): ResponseEntity<ByteArray>
-    fun status(): String
-    fun upload(request: HttpServletRequest) : String
-    fun download():String
 }
 
 @RestController
@@ -38,19 +35,6 @@ class FileControllerImpl (
         val uploadFileService: UploadFileService,
         @Autowired val webSocketService: WebSocketService
 ) : FileController {
-
-
-    @GetMapping("/upload")
-    override  fun upload( request: HttpServletRequest) : String {
-        return "upload"
-    }
-    @MessageMapping("/sendMessage")
-    @SendToUser("/queue/specific-user")
-    fun sendMessage(session: WebSocketSession, message: String): String {
-    // Enviar mensaje a través de la sesión de WebSocket del usuario específico
-        session.sendMessage(TextMessage(message))
-        return message
-    }
 
 
     val progressMap: MutableMap<String, Int> = mutableMapOf()
@@ -81,23 +65,5 @@ class FileControllerImpl (
             return ResponseEntity(csv, headers, HttpStatus.CREATED)
         }
         return ResponseEntity(csv, headers, HttpStatus.CREATED)
-    }
-
-
-
-
-
-
-
-
-
-    @GetMapping("/status")
-    override fun status(): String {
-        return "status"
-    }
-
-    @GetMapping("/download")
-    override fun download(): String {
-        return "download"
     }
 }
