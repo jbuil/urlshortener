@@ -4,7 +4,7 @@ import es.unizar.urlshortener.core.*
 import org.springframework.cache.*
 
 interface RetrieveQRUseCase {
-    fun retrieveQR(hash: String, cache: CacheManager): ByteArray
+    fun retrieveQR(hash: String, cacheManager: CacheManager): ByteArray
 }
 
 class RetrieveQRUseCaseImpl(
