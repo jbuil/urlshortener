@@ -7,6 +7,7 @@ import es.unizar.urlshortener.core.usecases.*
 import kotlinx.coroutines.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.mockito.BDDMockito
 import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.never
 import org.mockito.kotlin.*
@@ -15,11 +16,15 @@ import org.springframework.boot.test.autoconfigure.web.servlet.*
 import org.springframework.boot.test.mock.mockito.*
 import org.springframework.cache.*
 import org.springframework.http.*
+import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.context.*
 import org.springframework.test.web.servlet.*
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.socket.TextMessage
+import java.io.FileInputStream
 
 @WebMvcTest
 @ContextConfiguration(
@@ -55,6 +60,12 @@ class UrlShortenerControllerTest {
 
     @MockBean
     private lateinit var cacheManager: CacheManager
+
+    @MockBean
+    private lateinit var uploadFileService: UploadFileService
+
+    @MockBean
+    private lateinit var webSocketService : WebSocketService
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
@@ -334,5 +345,45 @@ class UrlShortenerControllerTest {
             .andDo(print())
             .andExpect(status().isBadRequest)
             .andExpect(header().string(RETRY_AFTER, "10000"))
+    }
+
+    @Test
+    fun `saveFile service returns expected output from a csv file`() {
+        val shortUrl = ShortUrl("key", Redirection("https://www.example.com"),
+            null, properties = (ShortUrlProperties(safe = null)))
+        val ret = "http://localhost:8080/ + ${shortUrl.hash},http://localhost:8080/${shortUrl.hash}".toByteArray()
+        val session = webSocketService.createSession("clientId")
+        session.sendMessage(TextMessage("Iniciando procesamiento del archivo del test"))
+        val fis = FileInputStream("delivery/src/test/resources/test_1.csv")
+        val file : MultipartFile = MockMultipartFile(
+            "test_1",
+            fis
+        )
+        BDDMockito.given(uploadFileService.saveFile(file) { progress ->
+            session.sendMessage(TextMessage("Progreso de $progress% del test"))
+        })
+            .willReturn(
+                ret
+            )
+    }
+
+    @Test
+    fun `saveFile service returns INVALID_URL when a URI is not valid`() {
+        val shortUrl = ShortUrl("key", Redirection("https://www.example.com"),
+            null, properties = (ShortUrlProperties(safe = null)))
+        val ret = "http://localhost:8080/${shortUrl.hash},invalid_URL,http://localhost:8080/${shortUrl.hash}".toByteArray()
+        val session = webSocketService.createSession("clientId")
+        session.sendMessage(TextMessage("Iniciando procesamiento del archivo del test"))
+        val fis = FileInputStream("delivery/src/test/resources/test_2.csv")
+        val file : MultipartFile = MockMultipartFile(
+            "test_2",
+            fis
+        )
+        BDDMockito.given(uploadFileService.saveFile(file) { progress ->
+            session.sendMessage(TextMessage("Progreso de $progress% del test"))
+        })
+            .willReturn(
+                ret
+            )
     }
 }
