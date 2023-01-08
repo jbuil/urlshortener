@@ -22,6 +22,7 @@ import java.net.*
 import java.net.http.*
 import java.nio.charset.*
 import javax.imageio.*
+import kotlin.math.roundToInt
 
 
 /**
@@ -143,65 +144,66 @@ class UploadFileServiceImpl(
 ) : UploadFileService {
 
     override fun saveFile(file: MultipartFile, progressCallback: (Int) -> Unit): ByteArray {
-        if (!file.isEmpty) {
-            val inputStream = file.inputStream
-            val reader = BufferedReader(InputStreamReader(inputStream))
-            var lastSentProgress = -1.0
-            val csv = StringWriter()
-            val writer = CSVWriter(csv)
-            val totalLines = file.inputStream.bufferedReader().useLines { it.count() }
-            var lineCount = 0
-            var line = reader.readLine()
-            while (line != null) {
-                val items = line.split(',')
-                for (item in items) {
-                    if (urlValidator.isValid(item)) {
-                        val su = createShortUrlUseCase.create(
-                            url = item,
-                            wantQR = false,
-                            data = ShortUrlProperties(ip = "127.0.0.1")
-                        )
-                        writer.writeNext(arrayOf("http://localhost:8080/" + su.hash))
-                    } else {
-                        writer.writeNext(arrayOf("invalid_URL"))
-                    }
-                }
-                line = reader.readLine()
-                lineCount++
-                val progress = round((lineCount * 100.0) / totalLines, 0)
-                if ((progress != lastSentProgress) && ((progress.toInt() % 15) == 0)) {
-                    // Enviar progreso a través de la función de devolución de llamada
-                    progressCallback(progress.toInt())
-                    lastSentProgress = progress
-                }
-
-
-
-
-            }
-
-            writer.close()
-            reader.close()
-
-            return csv.toString().toByteArray(StandardCharsets.UTF_8)
-        } else {
+        if (file.isEmpty) {
             return ByteArray(0)
+        }
+        val percentage = 15
+        val inputStream = file.inputStream
+        val reader = BufferedReader(InputStreamReader(inputStream))
+        val csv = StringWriter()
+        val writer = CSVWriter(csv)
+
+        val totalLines = countLines(file)
+        var lineCount = 0
+        var line = reader.readLine()
+        while (line != null) {
+            processLine(writer, line)
+            line = reader.readLine()
+            lineCount++
+            val progress = round((lineCount * 100.0) / totalLines, 0)
+            if ((progress.toInt() % percentage) == 0) {
+                progressCallback(progress.toInt())
+            }
+        }
+
+        writer.close()
+        reader.close()
+
+        return csv.toString().toByteArray(StandardCharsets.UTF_8)
+    }
+
+    fun countLines(file: MultipartFile): Int {
+        return file.inputStream.bufferedReader().useLines { it.count() }
+    }
+
+    fun processLine(writer: CSVWriter, line: String) {
+        val itemsSeparatedByComma = line.split(',')
+        for (item in itemsSeparatedByComma) {
+            if (urlValidator.isValid(item)) {
+                val su = createShortUrlUseCase.create(
+                    url = item,
+                    wantQR = false,
+                    data = ShortUrlProperties(ip = "127.0.0.1")
+                )
+                writer.writeNext(arrayOf("http://localhost:8080/" + su.hash))
+            } else {
+                writer.writeNext(arrayOf("invalid_URL"))
+            }
         }
     }
 
+
     fun round(value: Double, decimals: Int): Double {
         val factor = Math.pow(10.0, decimals.toDouble())
-        return Math.round(value * factor) / factor
+        return (value * factor).roundToInt() / factor
     }
 
 
 
 }
 class WebSocketServiceImpl(private val client: StandardWebSocketClient) : WebSocketService {
-    private val sessions = mutableMapOf<String, WebSocketSession>()
-    override fun createSession(parameter: String): WebSocketSession {
-        val session = client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
-        return session
+    override fun createSession(): WebSocketSession {
+        return client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
     }
 
 }

@@ -129,7 +129,6 @@ class MyWebSocketHandler : TextWebSocketHandler() {
         val (body, clientId) = message.payload.split(":")
         clientSessions[clientId.trim()]?.sendMessage(TextMessage(body))
 
-
     }
 }
 

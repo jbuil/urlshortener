@@ -76,5 +76,13 @@ data class ClickProperties(
 
         return true
     }
+    override fun hashCode(): Int {
+        var result = ip?.hashCode() ?: 0
+        result = 31 * result + (referrer?.hashCode() ?: 0)
+        result = 31 * result + (browser?.hashCode() ?: 0)
+        result = 31 * result + (platform?.hashCode() ?: 0)
+        result = 31 * result + (country?.hashCode() ?: 0)
+        return result
+    }
 }
 

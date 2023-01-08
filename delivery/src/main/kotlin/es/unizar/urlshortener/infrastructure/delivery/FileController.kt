@@ -30,7 +30,7 @@ class FileControllerImpl (
     @PostMapping("/api/bulk")
     override fun uploadFile(@RequestParam("file") file: MultipartFile, clientId: String): ResponseEntity<ByteArray> {
         // Crear una nueva sesión de WebSocket para el cliente especificado
-        val session = webSocketService.createSession("clientId")
+        val session = webSocketService.createSession()
 
         // Enviar un mensaje de inicio a través de la sesión de WebSocket
         session.sendMessage(TextMessage("Iniciando procesamiento del archivo del cliente: $clientId"))

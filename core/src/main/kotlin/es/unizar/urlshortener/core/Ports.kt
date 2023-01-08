@@ -86,6 +86,6 @@ interface GoogleSafeBrowsingService{
     fun isSafe(url: String): Boolean
 }
 interface WebSocketService{
-    fun createSession(parameter: String): WebSocketSession
+    fun createSession(): WebSocketSession
 }
 
