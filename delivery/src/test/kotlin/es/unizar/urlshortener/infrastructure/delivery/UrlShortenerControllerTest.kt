@@ -27,6 +27,7 @@ import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.client.standard.StandardWebSocketClient
 import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.io.FileInputStream
+import java.time.Duration
 
 
 @WebMvcTest
@@ -411,6 +412,87 @@ class UrlShortenerControllerTest {
 
     }
     @Test
+    fun `getInfo returns a 200 when the url is safe`() {
+        val shortUrl = ShortUrl(
+            "key",
+            Redirection("https://www.example.com"),
+            null,
+            properties = (ShortUrlProperties(
+                safe = true))
+        )
+
+        given(infoHTTPHeaderUseCase.getInfoUrl("key"))
+            .willReturn(shortUrl)
+
+        mockMvc.perform(get("/api/link/{id}", "key"))
+            .andDo(print())
+            .andExpect(status().isOk)
+
+    }
+    @Test
+    fun `getInfo is asynchronous`() {
+        // Arrange
+        val shortUrl = ShortUrl(
+            "key",
+            Redirection("https://www.example.com"),
+            null,
+            properties = (ShortUrlProperties(
+                safe = true))
+        )
+
+        given(infoHTTPHeaderUseCase.getInfoUrl("key"))
+            .willReturn(shortUrl)
+
+        // Act and assert
+        assertTimeout(Duration.ofMillis(500)) {
+            mockMvc.perform(get("/api/link/{id}", "key"))
+                .andDo(print())
+                .andExpect(status().isOk)
+        }
+    }
+    @Test
+    fun `getInfo is async`() {
+        // Arrange
+        val shortUrl = ShortUrl(
+            "key",
+            Redirection("https://www.example.com"),
+            null,
+            properties = (ShortUrlProperties(
+                safe = true))
+        )
+
+        given(infoHTTPHeaderUseCase.getInfoUrl("key"))
+            .willReturn(shortUrl)
+
+        // Act
+        val thread1 = Thread {
+            mockMvc.perform(get("/api/link/{id}", "key"))
+                .andExpect(status().isOk)
+        }
+
+        val thread2 = Thread {
+            mockMvc.perform(get("/api/link/{id}", "key"))
+                .andExpect(status().isOk)
+        }
+        val thread3 = Thread {
+            mockMvc.perform(get("/api/link/{id}", "key"))
+                .andExpect(status().isOk)
+        }
+
+        thread1.start()
+        thread2.start()
+        thread3.start()
+        thread1.join()
+        thread2.join()
+        thread3.join()
+
+        // Assert
+        // No assertion needed, the test will fail if the threads were blocked
+    }
+
+
+
+    @Test
     fun `getInfo returns a 403 Forbidden error when the url is not safe`() {
         val shortUrl =
             ShortUrl(
@@ -468,8 +550,6 @@ class UrlShortenerControllerTest {
         val shortUrl = ShortUrl("key", Redirection("https://www.example.com"),
             null, properties = (ShortUrlProperties(safe = null)))
         val ret = "http://localhost:8080/ + ${shortUrl.hash},http://localhost:8080/${shortUrl.hash}".toByteArray()
-
-
 
         val fis = FileInputStream("..//files//test_1.csv")
         val file : MultipartFile = MockMultipartFile(
