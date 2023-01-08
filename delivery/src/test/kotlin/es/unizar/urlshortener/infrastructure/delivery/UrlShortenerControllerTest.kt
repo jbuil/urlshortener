@@ -31,11 +31,9 @@ import javax.websocket.server.ServerEndpoint
 
 
 @WebMvcTest
-@ContextConfiguration(
-    classes = [
-        UrlShortenerControllerImpl::class,
-        RestResponseEntityExceptionHandler::class]
-)
+@ContextConfiguration(classes = [UrlShortenerControllerImpl::class,
+    InfoHTTPHeaderControllerImpl::class,
+    RestResponseEntityExceptionHandler::class])
 class UrlShortenerControllerTest {
 
     @Autowired
@@ -63,6 +61,9 @@ class UrlShortenerControllerTest {
     private lateinit var fileController: FileController
 
     @MockBean
+    private lateinit var infoHTTPHeaderUseCase: InfoHTTPHeaderUseCase
+
+    @MockBean
     private lateinit var cacheManager: CacheManager
 
     @MockBean
@@ -70,6 +71,7 @@ class UrlShortenerControllerTest {
 
     @MockBean
     private lateinit var webSocketService : WebSocketService
+
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
@@ -194,7 +196,6 @@ class UrlShortenerControllerTest {
     @OptIn(DelicateCoroutinesApi::class)
     @Test
     fun testUrlShortenerIsAsync() {
-
         runBlocking { // Configuramos el mock para que devuelva una URL acortada
             // cada vez que se le llame con una URL válida
             given(
@@ -268,6 +269,7 @@ class UrlShortenerControllerTest {
 
     }
 
+    @Test
     fun testGoogleSafeBrowsingService() {
         // URL de prueba que se considera segura
         val testUrlSafe = "https://www.google.com"
@@ -335,6 +337,106 @@ class UrlShortenerControllerTest {
 
     }
     @Test
+    fun `getInfo returns a 400 Bad Request error when the url has not been verified`() {
+
+        val shortUrl =
+            ShortUrl(
+                "key",
+                Redirection("https://www.example.com"),
+                null,
+                properties = (ShortUrlProperties(
+                    safe = null)))
+
+        given(redirectUseCase.redirectTo("key"))
+            .willReturn(Redirection("https://www.example.com"))
+        given(shortUrlRepository.findByKey("key"))
+            .willReturn(shortUrl)
+        given(infoHTTPHeaderUseCase.getInfoUrl("key"))
+            .willReturn(shortUrl)
+
+        // Act and assert
+        mockMvc.perform(get("/api/link/{id}", "key"))
+            .andDo(print())
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.statusCode").value(HttpStatus.BAD_REQUEST.value()))
+            .andExpect(jsonPath("$.message").value("[key] is not verified yet"))
+            .andExpect(header().string("Retry-after", "10000"))
+    }
+
+
+    @Test
+    fun `getInfo returns an empty list when the url has not been clicked yet`() {
+        given(
+            createShortUrlUseCase.create(
+                url = "http://example.com/",
+                wantQR = false,
+                data = ShortUrlProperties(ip = "127.0.0.1")
+            )
+        ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/"),
+            null, properties = ShortUrlProperties(safe = true)))
+
+        val shortUrl = ShortUrl(
+            "f684a3c4",
+            Redirection("https://www.example.com"),
+            "No",
+            properties = (ShortUrlProperties(
+                safe = true))
+        )
+        given(infoHTTPHeaderUseCase.getInfoUrl("f684a3c4"))
+            .willReturn(shortUrl)
+        given(infoHTTPHeaderUseCase.getInfo("f684a3c4"))
+            .willReturn(emptyList())
+
+        mockMvc.perform(get("/api/link/{id}", "f684a3c4"))
+            .andDo(print())
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.length()").value(0))
+    }
+
+    @Test
+    fun `getInfo returns a 404 Not Found error when the url has not been shortened`() {
+        val shortUrl = ShortUrl(
+            "key",
+            Redirection("https://www.example.com"),
+            null,
+            properties = (ShortUrlProperties(
+                safe = null))
+        )
+
+        given(infoHTTPHeaderUseCase.getInfoUrl("key"))
+            .willReturn(shortUrl)
+
+        mockMvc.perform(get("/api/link/{id}", "key"))
+            .andDo(print())
+            .andExpect(status().isNotFound)
+
+    }
+    @Test
+    fun `getInfo returns a 403 Forbidden error when the url is not safe`() {
+        val shortUrl =
+            ShortUrl(
+                "key",
+                Redirection("https://www.example.com"),
+                null,
+                properties = (ShortUrlProperties(
+                    safe = false)))
+
+        given(redirectUseCase.redirectTo("key"))
+            .willReturn(Redirection("https://www.example.com"))
+        given(shortUrlRepository.findByKey("key"))
+            .willReturn(shortUrl)
+        given(infoHTTPHeaderUseCase.getInfoUrl("key"))
+            .willReturn(shortUrl)
+
+        // Act and assert
+
+        mockMvc.perform(get("/api/link/{id}", "key"))
+            .andDo(print())
+            .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.statusCode").value(HttpStatus.FORBIDDEN.value()))
+            .andExpect(jsonPath("$.message").value("[key] is not safe"))
+    }
+    @Test
     fun `redirectTo returns a bad request when the key exists but the URL is not yet verified`() {
         // Arrange
         val shortUrl = ShortUrl("key", Redirection("https://www.example.com"),
@@ -350,9 +452,6 @@ class UrlShortenerControllerTest {
             .andExpect(status().isBadRequest)
             .andExpect(header().string(RETRY_AFTER, "10000"))
     }
-
-    @ServerEndpoint("/ws")
-    class TestEndpoint{}
     @Test
     fun `saveFile service returns expected output from a csv file`() {
         val shortUrl = ShortUrl("key", Redirection("https://www.example.com"),
