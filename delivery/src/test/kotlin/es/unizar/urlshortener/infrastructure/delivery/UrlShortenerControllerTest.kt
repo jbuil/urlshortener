@@ -5,6 +5,7 @@ import com.google.common.net.HttpHeaders.*
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
 import kotlinx.coroutines.*
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.mockito.BDDMockito
@@ -25,6 +26,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.socket.TextMessage
 import java.io.FileInputStream
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import javax.websocket.OnOpen
 import javax.websocket.Session
 import javax.websocket.server.ServerEndpoint
@@ -453,18 +456,107 @@ class UrlShortenerControllerTest {
             .andExpect(header().string(RETRY_AFTER, "10000"))
     }
     @Test
+    fun `getInfo returns a response within a reasonable amount of time`() {
+        // Set up mock dependencies
+        //given(infoHTTPHeaderUseCase.getInfoUrl("id")).willReturn(ShortUrl("id", Redirection("http://example.com/"), properties = ShortUrlProperties(safe = true,),))
+        given(infoHTTPHeaderUseCase.getInfo("id")).willReturn(listOf())
+
+        val startTime = System.currentTimeMillis()
+        mockMvc.perform(get("/api/link/{id}", "id"))
+        val endTime = System.currentTimeMillis()
+
+        val executionTime = endTime - startTime
+        assertThat(executionTime).isLessThan(1000) // The function should take less than 1 second to execute
+    }
+    @Test
+    fun `getInfo is asynchronous`() {
+        // Given
+        // Configurar comportamiento de dependencias, etc.
+        val shortUrl = ShortUrl("key1", Redirection("https://www.example.com"),
+            null, properties = (ShortUrlProperties(safe = true)))
+        given(redirectUseCase.redirectTo("key1"))
+            .willReturn(Redirection("https://www.example.com"))
+        given(shortUrlRepository.findByKey("key1"))
+            .willReturn(shortUrl)
+        val shortUrl1 = ShortUrl("key2", Redirection("https://www.example.com"),
+            null, properties = (ShortUrlProperties(safe = true)))
+        given(redirectUseCase.redirectTo("key2"))
+            .willReturn(Redirection("https://www.example.com"))
+        given(shortUrlRepository.findByKey("key2"))
+            .willReturn(shortUrl1)
+
+        // When
+        val startTime = System.currentTimeMillis()
+        val tasks = listOf(
+            GlobalScope.async {
+                mockMvc.perform(get("/api/link/{id}", "key1"))
+                    .andExpect(status().isOk)
+            },
+            GlobalScope.async {
+                mockMvc.perform(get("/api/link/{id}", "key2"))
+                    .andExpect(status().isOk)
+            },
+            GlobalScope.async {
+                mockMvc.perform(get("/api/link/{id}", "key3"))
+                    .andExpect(status().isOk)
+            }
+        )
+        runBlocking {
+            tasks.forEach { it.await() }
+        }
+        val endTime = System.currentTimeMillis()
+
+        // Then
+        assertTrue(endTime - startTime < 1000) // Todas las peticiones deben completarse en menos de 1 segundo
+    }
+    @Test
+    fun `getInfo is async`() {
+        // Given
+        val latch = CountDownLatch(1)
+        val url = "http://example.com/"
+        given(createShortUrlUseCase.create(url)).willReturn(ShortUrl(url = url, redirection = Redirection(url)))
+        given(infoHTTPHeaderUseCase.getInfo(url)).willAnswer {
+            latch.countDown()
+            emptyList<Click>()
+        }
+
+        // When
+        val thread = Thread {
+            mockMvc.perform(get("/api/link/{id}", url))
+                .andExpect(status().isOk)
+        }
+        thread.start()
+
+        // Then
+        latch.await(5, TimeUnit.SECONDS)
+        assertThat(thread.state).isEqualTo(Thread.State.TERMINATED)
+    }
+
+    @Test
+    fun `websocket works correctly`() {
+        //val blockingQueue: BlockingQueue<kotlin.String?> = ArrayBlockingQueue(1)
+        val client = StandardWebSocketClient()
+        client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
+            ?.sendMessage(TextMessage("Test"))
+    }
+
+    @Test
     fun `saveFile service returns expected output from a csv file`() {
+        val client = StandardWebSocketClient()
+        val session = client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
+
         val shortUrl = ShortUrl("key", Redirection("https://www.example.com"),
             null, properties = (ShortUrlProperties(safe = null)))
         val ret = "http://localhost:8080/ + ${shortUrl.hash},http://localhost:8080/${shortUrl.hash}".toByteArray()
-        val session = webSocketService.createSession()
-        session.sendMessage(TextMessage("Iniciando procesamiento del archivo del test"))
-        val fis = FileInputStream("delivery/src/test/resources/test_1.csv")
+
+
+
+        val fis = FileInputStream("..//files//test_1.csv")
         val file : MultipartFile = MockMultipartFile(
             "test_1",
             fis
         )
-        given(uploadFileService.saveFile(file) { progress ->
+        BDDMockito.given(uploadFileService.saveFile(file) { progress ->
             session.sendMessage(TextMessage("Progreso de $progress% del test"))
         })
             .willReturn(
@@ -474,17 +566,17 @@ class UrlShortenerControllerTest {
 
     @Test
     fun `saveFile service returns INVALID_URL when a URI is not valid`() {
+        val client = StandardWebSocketClient()
+        val session = client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
         val shortUrl = ShortUrl("key", Redirection("https://www.example.com"),
             null, properties = (ShortUrlProperties(safe = null)))
         val ret = "http://localhost:8080/${shortUrl.hash},invalid_URL,http://localhost:8080/${shortUrl.hash}".toByteArray()
-        val session = webSocketService.createSession()
-        session.sendMessage(TextMessage("Iniciando procesamiento del archivo del test"))
-        val fis = FileInputStream("delivery/src/test/resources/test_2.csv")
+        val fis = FileInputStream("..//files//test_1.csv")
         val file : MultipartFile = MockMultipartFile(
             "test_2",
             fis
         )
-        given(uploadFileService.saveFile(file) { progress ->
+        BDDMockito.given(uploadFileService.saveFile(file) { progress ->
             session.sendMessage(TextMessage("Progreso de $progress% del test"))
         })
             .willReturn(
