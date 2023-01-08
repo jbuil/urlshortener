@@ -24,10 +24,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.socket.TextMessage
+import org.springframework.web.socket.client.standard.StandardWebSocketClient
+import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.io.FileInputStream
-import javax.websocket.OnOpen
-import javax.websocket.Session
-import javax.websocket.server.ServerEndpoint
 
 
 @WebMvcTest
@@ -351,21 +350,31 @@ class UrlShortenerControllerTest {
             .andExpect(header().string(RETRY_AFTER, "10000"))
     }
 
-    @ServerEndpoint("/ws")
-    class TestEndpoint{}
+    @Test
+    fun `websocket works correctly`() {
+        //val blockingQueue: BlockingQueue<kotlin.String?> = ArrayBlockingQueue(1)
+        val client = StandardWebSocketClient()
+        client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
+            ?.sendMessage(TextMessage("Test"))
+    }
+
     @Test
     fun `saveFile service returns expected output from a csv file`() {
+        val client = StandardWebSocketClient()
+        val session = client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
+
         val shortUrl = ShortUrl("key", Redirection("https://www.example.com"),
             null, properties = (ShortUrlProperties(safe = null)))
         val ret = "http://localhost:8080/ + ${shortUrl.hash},http://localhost:8080/${shortUrl.hash}".toByteArray()
-        val session = webSocketService.createSession()
-        session.sendMessage(TextMessage("Iniciando procesamiento del archivo del test"))
-        val fis = FileInputStream("delivery/src/test/resources/test_1.csv")
+
+
+
+        val fis = FileInputStream("..//files//test_1.csv")
         val file : MultipartFile = MockMultipartFile(
             "test_1",
             fis
         )
-        given(uploadFileService.saveFile(file) { progress ->
+        BDDMockito.given(uploadFileService.saveFile(file) { progress ->
             session.sendMessage(TextMessage("Progreso de $progress% del test"))
         })
             .willReturn(
@@ -375,17 +384,17 @@ class UrlShortenerControllerTest {
 
     @Test
     fun `saveFile service returns INVALID_URL when a URI is not valid`() {
+        val client = StandardWebSocketClient()
+        val session = client.doHandshake(TextWebSocketHandler(), "ws://localhost:8080/ws").get()
         val shortUrl = ShortUrl("key", Redirection("https://www.example.com"),
             null, properties = (ShortUrlProperties(safe = null)))
         val ret = "http://localhost:8080/${shortUrl.hash},invalid_URL,http://localhost:8080/${shortUrl.hash}".toByteArray()
-        val session = webSocketService.createSession()
-        session.sendMessage(TextMessage("Iniciando procesamiento del archivo del test"))
-        val fis = FileInputStream("delivery/src/test/resources/test_2.csv")
+        val fis = FileInputStream("..//files//test_1.csv")
         val file : MultipartFile = MockMultipartFile(
             "test_2",
             fis
         )
-        given(uploadFileService.saveFile(file) { progress ->
+        BDDMockito.given(uploadFileService.saveFile(file) { progress ->
             session.sendMessage(TextMessage("Progreso de $progress% del test"))
         })
             .willReturn(

@@ -48,7 +48,7 @@ class FileControllerImpl (
         val reader = BufferedReader(InputStreamReader(inputStream))
         headers.location = URI.create(reader.readLine().split(',')[0])
         if(csv.contentEquals(ByteArray(0))) {
-            return ResponseEntity(csv, headers, HttpStatus.CREATED)
+            return ResponseEntity(csv, headers, HttpStatus.OK)
         }
         return ResponseEntity(csv, headers, HttpStatus.CREATED)
     }
