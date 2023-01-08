@@ -98,8 +98,6 @@ class UrlShortenerControllerImpl(
                     throw UrlNotSafe(id)
                 }
             }
-
-
             h.location = URI.create(it.target)
 
             val clickOut = ClickOut(

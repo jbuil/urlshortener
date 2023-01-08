@@ -66,6 +66,9 @@ class InfoHTTPHeaderControllerImpl (
             if (url != null) {
                 verifyUrlSafety(url,id)
             }
+            else{
+                return@runBlocking ResponseEntity.notFound().build()
+            }
             val let = infoHTTPHeaderUseCase.getInfo(id).let {
                 var response: ArrayList<ClickOut> = ArrayList<ClickOut>()
                 if (it != null) {
