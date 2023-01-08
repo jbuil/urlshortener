@@ -94,6 +94,18 @@ paths:
               type: string
               enum:
                 - text/csv
+        "200":
+          description: Given file is empty
+          headers:
+            Content-Type:
+              type: string
+              enum:
+                - text/csv
+        "500":
+          description: Communication with WebSocket abruptly closed.
+          schema:
+            type: object
+            $ref: '#/definitions/Error500'
   /api/link/{id}:
     get:
       operationId: getlink
@@ -278,6 +290,20 @@ definitions:
         type: string
         description: "Description of the error"
         example: "Destination URI doesn't exist"
+      timestamp:
+        type: string
+        description: "Timestamp of the request"
+        example: "2022-12-19T23:58:57.70665+01:00"
+  Error500:
+    properties:
+      statusCode:
+        type: integer
+        description: "Protocol status code"
+        example: "500"
+      message:
+        type: string
+        description: "Description of the error"
+        example: "Internal Server Error"
       timestamp:
         type: string
         description: "Timestamp of the request"
